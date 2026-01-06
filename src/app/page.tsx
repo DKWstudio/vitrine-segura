@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+
 // ADICIONADO ArrowRight NA IMPORTAÇÃO ABAIXO
 import { Star, Truck, Shield, CheckCircle, ArrowUp, Flame, ChevronDown, ArrowRight } from "lucide-react";
 import { products } from "@/data/products";
