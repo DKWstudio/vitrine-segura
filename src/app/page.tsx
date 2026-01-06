@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Star, Truck, Shield, CheckCircle, ArrowUp, Flame, ChevronDown } from "lucide-react";
+// ADICIONADO ArrowRight NA IMPORTAÇÃO ABAIXO
+import { Star, Truck, Shield, CheckCircle, ArrowUp, Flame, ChevronDown, ArrowRight } from "lucide-react";
 import { products } from "@/data/products";
 import ProductCard from "@/components/ui/ProductCard";
 
@@ -141,15 +142,27 @@ export default function VitrineSegura() {
         </div>
       </section>
 
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-200 py-3 mt-8">
+      {/* MENU DE CATEGORIAS COM INDICADOR DE SCROLL CORRIGIDO */}
+      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-200 py-4 mt-8">
         <div className="container mx-auto px-4">
-          <div className="flex flex-wrap justify-center items-center gap-2">
+          
+          <div className="flex items-center justify-between mb-2 md:hidden">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Categorias</span>
+            <div className="flex items-center gap-1 animate-pulse">
+              <span className="text-[9px] font-bold text-blue-800 uppercase">Arraste</span>
+              <ArrowRight className="h-3 w-3 text-blue-600" />
+            </div>
+          </div>
+
+          <div className="flex flex-nowrap items-center gap-3 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 mask-fade-edge">
             {categories.map(cat => (
               <button 
                 key={cat.id} 
                 onClick={() => { setSelectedCategory(cat.id); setSpecialFilter('none'); }}
-                className={`px-3 py-2 rounded-full text-[10px] font-black uppercase border transition-all
-                  ${selectedCategory === cat.id ? "bg-blue-600 text-white border-blue-600 shadow-md" : "bg-white text-slate-600 border-slate-200"}`}
+                className={`flex-shrink-0 whitespace-nowrap px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all active:scale-95 border-2
+                  ${selectedCategory === cat.id 
+                    ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white border-blue-400 shadow-lg shadow-blue-200" 
+                    : "bg-slate-50 text-slate-600 border-slate-100 hover:border-blue-200"}`}
               >
                 {cat.label}
               </button>
@@ -167,6 +180,14 @@ export default function VitrineSegura() {
       </main>
 
       <RecentSales onNewSale={handleNewSale} />
+      
+      {/* Botão flutuante para voltar ao topo no mobile */}
+      <button 
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        className="fixed bottom-6 right-6 p-4 bg-blue-600 text-white rounded-full shadow-2xl z-50 md:hidden active:scale-90 transition-transform border-2 border-white/20"
+      >
+        <ArrowUp className="h-6 w-6" />
+      </button>
     </div>
   );
 }
