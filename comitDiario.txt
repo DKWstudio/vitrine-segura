@@ -1,5 +1,5 @@
 COMIT DIÁRIOS:
 
 git add .
-git commit -m "Atualização --> Atualização Not, Class e Prof"
+git commit -m "Atualização --> Menu Categorias"
 git push
