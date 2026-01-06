@@ -1,4 +1,4 @@
-// BUILD UPDATE: 06/01/2026 - v2
+// BUILD UPDATE: 06/01/2026 - v2.0
 "use client";
 
 import { Star, Flame, ArrowRight } from "lucide-react";
