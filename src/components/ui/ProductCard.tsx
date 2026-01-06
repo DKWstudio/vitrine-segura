@@ -69,7 +69,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
         </div>
 
-        {/* BOTÃO DE AÇÃO AJUSTADO */}
+        {/* BOTÃO DE AÇÃO AJUSTADO - funcinado OK*/}
        <a
           href={finalUrl}
           target="_blank"
