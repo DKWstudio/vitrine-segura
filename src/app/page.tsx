@@ -45,42 +45,30 @@ const UrgencyBanner = ({ count }: { count: number }) => {
   );
 };
 
-// 2. COMPONENTE DE NOTIFICAÇÕES (RITMO REALMENTE PAUSADO)
+// 2. COMPONENTE DE NOTIFICAÇÕES
 const RecentSales = ({ onNewSale }: { onNewSale: () => void }) => {
   const [sales, setSales] = useState<{ name: string; city: string } | null>(null);
   const [visible, setVisible] = useState(false);
 
-  const cities = ["São Paulo", "Rio de Janeiro", "Modelo", "Curitiba", "Belo Horizonte", "Maravilha", "Salvador", "Porto Alegre", "Chapecó", "Brasília", "Fortaleza", "Manaus", "Recife", "Campinas", "Goiânia", "Vitória", "Florianópolis", "Pinhalzinho", "Itajaí", "Balneário Camboriú"];
-  const productsNames = ["um item de Casa", "um Eletrônico", "um item de Beleza", "um Suplemento", "um fone de ouvido", "um item Automotivo", "um utensílio de Cozinha"];
+  const cities = ["São Paulo", "Rio de Janeiro", "Curitiba", "Belo Horizonte", "Salvador", "Porto Alegre", "Brasília", "Fortaleza", "Manaus", "Florianópolis", "Itajaí", "Balneário Camboriú"];
+  const productsNames = ["um item de Casa", "um Eletrônico", "um item de Beleza", "um Suplemento", "um fone de ouvido", "um item Automotivo"];
 
   useEffect(() => {
     let timerId: NodeJS.Timeout;
-
     const triggerNextSale = () => {
-      // 1. Prepara os dados
       const randomCity = cities[Math.floor(Math.random() * cities.length)];
       const randomProduct = productsNames[Math.floor(Math.random() * productsNames.length)];
       setSales({ name: randomProduct, city: randomCity });
-      
-      // 2. Mostra a notificação e atualiza o contador global
       setVisible(true);
       onNewSale(); 
 
-      // 3. Mantém visível por 8 segundos
       timerId = setTimeout(() => {
         setVisible(false);
-        
-        // 4. ESPERA: Só agenda a próxima após o balão sumir.
-        // Intervalo entre 60 e 180 segundos (1 a 3 minutos de PAUSA REAL)
         const nextPause = Math.floor(Math.random() * (180000 - 60000 + 1) + 60000);
         timerId = setTimeout(triggerNextSale, nextPause);
-        
       }, 8000);
     };
-
-    // Primeira aparição após 20 segundos de navegação
     timerId = setTimeout(triggerNextSale, 20000);
-
     return () => clearTimeout(timerId);
   }, [onNewSale]);
 
@@ -88,23 +76,14 @@ const RecentSales = ({ onNewSale }: { onNewSale: () => void }) => {
 
   return (
     <div className={`fixed bottom-6 left-6 z-[100] transition-all duration-1000 transform ${visible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0 pointer-events-none'}`}>
-      <div className="bg-amber-50 p-4 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] border border-amber-200/60 flex items-center gap-4 max-w-[320px] backdrop-blur-md">
-        <div className="relative">
-          <div className="h-12 w-12 bg-amber-500 rounded-full flex items-center justify-center text-white shadow-inner">
-             <Flame className="h-6 w-6 fill-white" />
-          </div>
-          <span className="absolute -top-1 -right-1 flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-          </span>
+      <div className="bg-white p-4 rounded-2xl shadow-2xl border border-slate-100 flex items-center gap-4 max-w-[280px] backdrop-blur-md">
+        <div className="h-10 w-10 bg-amber-500 rounded-full flex items-center justify-center text-white shrink-0">
+          <Flame className="h-5 w-5 fill-white" />
         </div>
         <div>
-          <p className="text-[11px] leading-tight text-slate-600 font-medium">
+          <p className="text-[10px] leading-tight text-slate-600 font-medium">
             Alguém de <span className="text-slate-900 font-bold">{sales.city}</span> acabou de garantir <span className="text-amber-700 font-bold">{sales.name}</span>.
           </p>
-          <div className="flex items-center gap-1 mt-1">
-            <p className="text-[9px] text-amber-600 font-black uppercase tracking-tighter italic">Oferta Aproveitada ✅</p>
-          </div>
         </div>
       </div>
     </div>
@@ -114,46 +93,25 @@ const RecentSales = ({ onNewSale }: { onNewSale: () => void }) => {
 // 3. SEÇÃO DE FAQ
 const FaqSection = () => {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-
   const faqs = [
-    {
-      q: "É seguro comprar através desses links?",
-      a: "Sim, 100% seguro. Todos os links da nossa vitrine redirecionam você diretamente para a plataforma oficial do Mercado Livre. O pagamento e a entrega são processados por eles, garantindo sua proteção total."
-    },
-    {
-      q: "Como recebo o produto?",
-      a: "Após a compra no Mercado Livre, você receberá todas as atualizações por e-mail e pelo app. A maioria dos nossos achadinhos possui selo 'FULL', chegando em sua casa em até 24h ou 48h."
-    },
-    {
-      q: "Os produtos têm garantia?",
-      a: "Com certeza. Além da garantia do fabricante, você conta com o programa 'Compra Garantida' do Mercado Livre: se não gostar ou tiver qualquer defeito, você tem até 30 dias para devolver e receber seu dinheiro de volta."
-    },
-    {
-      q: "Por que os preços podem variar?",
-      a: "O Mercado Livre é um marketplace dinâmico. Nossa equipe atualiza a vitrine diariamente, mas como os estoques são limitados, os preços podem sofrer alterações conforme a disponibilidade dos vendedores."
-    }
+    { q: "É seguro comprar através desses links?", a: "Sim, 100% seguro. Todos os links redirecionam para o Mercado Livre oficial." },
+    { q: "Como recebo o produto?", a: "Pelo Mercado Livre, a maioria com selo FULL em até 24h." },
+    { q: "Os produtos têm garantia?", a: "Sim, garantia do fabricante e compra garantida Mercado Livre." },
+    { q: "Por que os preços variam?", a: "Pela dinâmica de estoque e vendedores no marketplace." }
   ];
 
   return (
     <section className="py-20 bg-slate-50 border-t border-slate-200">
       <div className="container mx-auto px-4 max-w-3xl">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">Dúvidas Frequentes</h2>
-          <p className="text-slate-500 font-medium italic">Tudo o que você precisa saber para comprar com tranquilidade</p>
-        </div>
-        <div className="space-y-4">
+        <h2 className="text-2xl font-black text-slate-900 mb-8 text-center italic uppercase">Dúvidas Frequentes</h2>
+        <div className="space-y-3">
           {faqs.map((faq, idx) => (
-            <div key={idx} className="bg-white rounded-2xl border border-slate-200 overflow-hidden transition-all duration-300 shadow-sm">
-              <button 
-                onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
-                className="w-full p-5 text-left flex items-center justify-between group"
-              >
-                <span className={`font-bold transition-colors ${openIndex === idx ? 'text-blue-600' : 'text-slate-800'}`}>{faq.q}</span>
-                <ChevronDown className={`h-5 w-5 transition-transform duration-300 ${openIndex === idx ? 'rotate-180 text-blue-600' : 'text-slate-400'}`} />
+            <div key={idx} className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+              <button onClick={() => setOpenIndex(openIndex === idx ? null : idx)} className="w-full p-4 text-left flex items-center justify-between">
+                <span className="font-bold text-slate-800 text-sm">{faq.q}</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${openIndex === idx ? 'rotate-180' : ''}`} />
               </button>
-              <div className={`transition-all duration-300 ease-in-out overflow-hidden ${openIndex === idx ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}>
-                <div className="p-5 pt-0 text-sm text-slate-500 leading-relaxed border-t border-slate-50">{faq.a}</div>
-              </div>
+              {openIndex === idx && <div className="p-4 pt-0 text-xs text-slate-500 border-t border-slate-50">{faq.a}</div>}
             </div>
           ))}
         </div>
@@ -177,14 +135,14 @@ export default function VitrineSegura() {
   const handleNewSale = () => setGlobalBuyersCount(prev => prev + 1);
 
   const categories = [
-    { id: 'Casa', label: '🏠 Casa & Utilidades' },
+    { id: 'Casa', label: '🏠 Casa' },
     { id: 'Eletrônicos', label: '🔌 Eletrônicos' },
     { id: 'Beleza', label: '💄 Beleza' },
-    { id: 'Audio', label: '🎧 Áudio e Vídeo' },
+    { id: 'Audio', label: '🎧 Áudio' },
     { id: 'Roupas-Masc', label: '👕 Masculino' },
     { id: 'Roupas-Fem', label: '👗 Feminino' },
     { id: 'Infantil', label: '🧸 Infantil' },
-    { id: 'Auto', label: '🚗 Automotivo' },
+    { id: 'Auto', label: '🚗 Auto' },
     { id: 'Suplementos', label: '🥤 Suplementos' },
   ];
 
@@ -200,131 +158,70 @@ export default function VitrineSegura() {
   return (
     <div id="top" className="min-h-screen bg-[#F8FAFC] scroll-smooth font-sans antialiased text-slate-900">
       
-      {/* HEADER E HERO */}
-      <header className="relative overflow-hidden bg-[#0F172A] text-white pt-16 pb-24 md:pt-20 md:pb-28">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
-        <div className="container mx-auto px-4 relative z-10 text-center flex flex-col items-center">
-          <div className="bg-white/5 p-6 rounded-3xl backdrop-blur-sm mb-8 border border-white/10 shadow-2xl">
-            <img src="/img/vitrineSegura.png" alt="Vitrine Segura" className="w-full max-w-[280px] md:max-w-[420px] h-auto object-contain mx-auto" />
+      <header className="relative overflow-hidden bg-[#0F172A] text-white pt-16 pb-24 text-center">
+        <div className="container mx-auto px-4 relative z-10 flex flex-col items-center">
+          <div className="bg-white/5 p-4 rounded-3xl backdrop-blur-sm mb-6 border border-white/10">
+            <img src="/img/vitrineSegura.png" alt="Vitrine Segura" className="w-full max-w-[240px] md:max-w-[420px] h-auto mx-auto" />
           </div>
-          <div className="max-w-4xl space-y-4 md:space-y-6">
-            <h1 className="text-3xl md:text-7xl font-extrabold tracking-tight leading-[1.1] bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-100 to-slate-400 uppercase">
-              Achadinhos Úteis <br className="hidden md:block"/> do Dia a Dia
-            </h1>
-            <p className="text-base md:text-xl text-slate-400 font-medium italic max-w-2xl mx-auto">Os produtos mais vendidos do Mercado Livre hoje — veja antes que acabem</p>
-          </div>
+          <h1 className="text-3xl md:text-7xl font-extrabold uppercase italic leading-tight">Achadinhos Úteis</h1>
+          <p className="text-sm md:text-xl text-slate-400 mt-2">Os mais vendidos do Mercado Livre hoje</p>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#F8FAFC] to-transparent"></div>
-      </header>   
+      </header> 
 
-      {/* CONFIANÇA E CATEGORIAS */}
-      <section className="relative z-20 -mt-12">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
-            {[
-              { icon: Star, text: "Alta Avaliação", sub: "4.5+ estrelas", color: "text-yellow-500" },
-              { icon: Truck, text: "Envio Full", sub: "Entrega rápida", color: "text-green-500" },
-              { icon: Shield, text: "Compra Segura", sub: "100% Protegido", color: "text-blue-500" },
-              { icon: CheckCircle, text: "Verificado", sub: "Link Oficial", color: "text-emerald-500" }
-            ].map((item, idx) => (
-              <div key={idx} className="bg-white p-4 md:p-6 rounded-2xl shadow-xl flex flex-col items-center text-center border border-slate-100 transition-transform hover:-translate-y-1">
-                <div className={`${item.color} mb-3 p-3 bg-slate-50 rounded-xl`}><item.icon className="h-6 w-6 md:h-8 md:w-8" /></div>
-                <h4 className="text-sm font-bold text-slate-800">{item.text}</h4>
-                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{item.sub}</p>
-              </div>
-            ))}
-          </div>
+      {/* CONFIANÇA */}
+      <section className="relative z-20 -mt-8 container mx-auto px-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-5xl mx-auto">
+          {[{ icon: Star, t: "4.5+ Estrelas" }, { icon: Truck, t: "Envio Full" }, { icon: Shield, t: "Compra Segura" }, { icon: CheckCircle, t: "Link Oficial" }].map((item, i) => (
+            <div key={i} className="bg-white p-3 rounded-xl shadow-lg border border-slate-100 flex flex-col items-center">
+              <item.icon className="h-5 w-5 text-blue-600 mb-1" />
+              <span className="text-[10px] font-bold uppercase">{item.t}</span>
+            </div>
+          ))}
         </div>
       </section>
 
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-200 py-4 mt-12">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-nowrap md:flex-wrap md:justify-center items-center gap-3 overflow-x-auto no-scrollbar pb-2">
-            {categories.map(cat => (
-              <button 
-                key={cat.id} 
-                onClick={() => { setSelectedCategory(cat.id); setSpecialFilter('none'); }}
-                className={`flex-shrink-0 whitespace-nowrap px-5 py-2.5 rounded-full text-[11px] font-extrabold uppercase tracking-widest transition-all border
-                  ${selectedCategory === cat.id ? "bg-blue-600 text-white border-blue-600 shadow-blue-200" : "bg-white text-slate-600 border-slate-200 hover:border-blue-500"}`}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </nav>
+      {/* NAV CORRIGIDA - QUEBRA DE LINHA */}
+      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-slate-200 py-4 mt-8">
+  <div className="container mx-auto px-4">
+    {/* flex-wrap permite quebrar a linha. justify-center centraliza os botões */}
+    <div className="flex flex-wrap justify-center items-center gap-2">
+      {categories.map(cat => (
+        <button 
+          key={cat.id} 
+          onClick={() => { setSelectedCategory(cat.id); setSpecialFilter('none'); }}
+          className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-tight border transition-all
+            ${selectedCategory === cat.id 
+              ? "bg-blue-600 text-white border-blue-600 shadow-md" 
+              : "bg-white text-slate-600 border-slate-100 shadow-sm"}`}
+        >
+          {cat.label}
+        </button>
+      ))}
+    </div>
+  </div>
+</nav>
 
-      {/* COMPONENTES DE PERSUASÃO */}
       <UrgencyBanner count={globalBuyersCount} />
 
-      <div className="container mx-auto px-4 mt-8 flex flex-wrap justify-center gap-4">
-        <button onClick={() => setSpecialFilter(specialFilter === 'promo' ? 'none' : 'promo')} className={`px-6 py-3 rounded-2xl text-[11px] font-black uppercase border-2 transition-all shadow-sm ${specialFilter === 'promo' ? "bg-red-500 border-red-600 text-white" : "bg-white border-slate-100 text-slate-600 hover:border-red-400"}`}>
-          {specialFilter === 'promo' ? "✕ Limpar" : "🔥 Ofertas Até R$50"}
-        </button>
-        <button onClick={() => setSpecialFilter(specialFilter === 'top' ? 'none' : 'top')} className={`px-6 py-3 rounded-2xl text-[11px] font-black uppercase border-2 transition-all shadow-sm ${specialFilter === 'top' ? "bg-amber-500 border-amber-600 text-white" : "bg-white border-slate-100 text-slate-600 hover:border-amber-400"}`}>
-          {specialFilter === 'top' ? "✕ Limpar" : "⭐ Top Avaliados (4.8+)"}
-        </button>
+      {/* FILTROS ESPECIAIS */}
+      <div className="container mx-auto px-4 mt-6 flex justify-center gap-3">
+        <button onClick={() => setSpecialFilter(specialFilter === 'promo' ? 'none' : 'promo')} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase border-2 ${specialFilter === 'promo' ? "bg-red-500 text-white border-red-600" : "bg-white border-slate-100"}`}>🔥 Até R$50</button>
+        <button onClick={() => setSpecialFilter(specialFilter === 'top' ? 'none' : 'top')} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase border-2 ${specialFilter === 'top' ? "bg-amber-500 text-white border-amber-600" : "bg-white border-slate-100"}`}>⭐ Top 4.8+</button>
       </div>
 
-      <main id="vitrine" className="container mx-auto px-4 py-12 max-w-[1300px] min-h-[600px]">
-        {categories.filter(cat => cat.id === selectedCategory).map(cat => (
-          <section key={cat.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex items-center justify-between mb-10 border-b border-slate-100 pb-6">
-              <div className="space-y-1">
-                <h3 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight italic">
-                  {cat.label} <span className="text-blue-600">{specialFilter !== 'none' && " • Seleção Especial"}</span>
-                </h3>
-                <div className="h-1.5 w-20 bg-blue-600 rounded-full"></div>
-              </div>
-              <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="p-3 rounded-full bg-slate-100 text-slate-400 hover:bg-blue-600 hover:text-white transition-all"><ArrowUp className="h-5 w-5" /></button>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-10">
-              {filteredProducts.length > 0 ? (
-                filteredProducts.map(p => <ProductCard key={p.id} product={p} />)
-              ) : (
-                <div className="col-span-full text-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-200">
-                  <p className="text-slate-400 font-bold">Nenhum produto encontrado neste filtro.</p>
-                  <button onClick={() => setSpecialFilter('none')} className="mt-4 text-blue-600 underline font-extrabold">Ver todos da categoria</button>
-                </div>
-              )}
-            </div>
-          </section>
-        ))}
+      <main className="container mx-auto px-4 py-8 max-w-[1200px]">
+        {/* GRID CORRIGIDO - GAP MENOR NO MOBILE */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-10">
+          {filteredProducts.map(p => <ProductCard key={p.id} product={p} />)}
+        </div>
       </main>
 
       <FaqSection />
 
-      {/* 5. FOOTER (CORRIGIDO) */}
-      <footer className="bg-[#0A0F1C] text-white py-16 border-t border-slate-800/50">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-center max-w-6xl mx-auto gap-12 md:gap-0">
-            {/* COLUNA DK WORKS STUDIO */}
-            <div className="flex-1 flex flex-col items-center justify-center space-y-4 text-center">
-              <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold">Landing Page criada por</p>
-              <a href="https://dkworksstudio.base44.app/" target="_blank" className="group">
-                <img src="/img/dkTransparente.png" alt="DK Works" className="h-14 w-auto brightness-0 invert opacity-90 transition-transform group-hover:scale-105" />
-              </a>
-              <p className="text-sm text-slate-300 font-medium">Consultoria em TI & Soluções Digitais</p>
-              <div className="flex flex-col sm:flex-row items-center gap-6 pt-2">
-                <a href="mailto:dkworksstudio@gmail.com" className="text-[11px] text-yellow-500 font-extrabold flex items-center gap-2">📩 dkworksstudio@gmail.com</a>
-                <a href="https://dkworksstudio.base44.app/" target="_blank" className="text-[11px] text-[#3B82F6] font-extrabold flex items-center gap-2">🌐 Visitar Website</a>
-              </div>
-            </div>
-
-            <div className="hidden md:block h-32 w-[1px] bg-slate-700/50 mx-16"></div>
-
-            {/* COLUNA VITRINE SEGURA */}
-            <div className="flex-1 flex flex-col items-center justify-center space-y-4 text-center">
-              <img src="/img/vitrineSegura.png" alt="Vitrine Segura" className="h-16 md:h-20 w-auto brightness-0 invert opacity-90" />
-              <div className="space-y-1">
-                <p className="text-slate-300 font-bold text-base italic">© 2026 – Vitrine Segura</p>
-                <p className="text-[10px] text-slate-500 max-w-[280px] mx-auto leading-relaxed">
-                  Afiliado Mercado Livre – Compras realizadas diretamente na plataforma oficial através de links verificados.
-                </p>
-              </div>
-            </div>
-          </div>
+      <footer className="bg-[#0A0F1C] text-white py-12 text-center border-t border-slate-800">
+        <div className="container mx-auto px-4 space-y-6">
+          <img src="/img/vitrineSegura.png" alt="Vitrine Segura" className="h-10 mx-auto brightness-0 invert" />
+          <p className="text-[10px] text-slate-500 max-w-xs mx-auto">© 2026 – Vitrine Segura. Afiliado oficial Mercado Livre.</p>
         </div>
       </footer>
 
