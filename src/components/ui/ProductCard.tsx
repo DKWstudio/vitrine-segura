@@ -71,18 +71,18 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* BOTÃO DE AÇÃO AJUSTADO */}
        <a
-  href={finalUrl}
-  target="_blank"
-  rel="noopener noreferrer"
-  className={`w-full flex items-center justify-center gap-2 py-3 px-2 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-tight transition-all active:scale-95
-    ${product.isDailyTip 
-      ? "bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-200" 
-      : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-100"
-    }`}
->
-  <span className="text-center">Ver no Mercado Livre</span>
-  <ArrowRight className="h-3 w-3 flex-shrink-0" />
-</a>
+          href={finalUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`w-full flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl font-black text-[9px] xs:text-[10px] uppercase tracking-tighter transition-all active:scale-95
+            ${product.isDailyTip 
+              ? "bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-200" 
+              : "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-100"
+            }`}
+        >
+          <span className="text-center leading-[1.1]">Ver no Mercado Livre</span>
+          <ArrowRight className="h-3.5 w-3.5 flex-shrink-0" />
+        </a>
         
         <p className="text-[9px] text-center text-slate-400 font-medium">
           Envio Full • Compra Garantida
