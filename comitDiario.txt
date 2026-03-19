@@ -3,3 +3,8 @@ COMIT DIÁRIOS:
 git add .
 git commit -m "Atualização --> Menu Categorias"
 git push
+
+
+git config user.email dkworksstudio@gmail.com
+
+git config user.email dfk.tec.1978@gmail.com

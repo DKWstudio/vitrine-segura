@@ -5,17 +5,17 @@ export const products: Product[] = [
   {
     id: "casa-01",
     name: "Escorredor de Pratos Duplo Desmontavel Black Arthi",
-    price: 34.99,
+    price: 39.80,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_684270-MLA99575716446_122025-F.webp",
     url: "https://mercadolivre.com/sec/1HgacEW",
     category: "Casa",
-    rating: 4.3,
+    rating: 4.4,
     isDailyTip: true 
   },
   {
     id: "casa-02",
     name: "Lava Roupas Sabão Líquido OMO Lavagem Perfeita 7 L",
-    price: 69.24,
+    price: 79.99,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_774608-MLA99929782565_112025-F.webp",
     url: "https://mercadolivre.com/sec/2Lzbyvj",
     category: "Casa",
@@ -24,16 +24,16 @@ export const products: Product[] = [
   {
     id: "casa-03",
     name: "Torneira Cozinha Parede Gourmet Flexível Bica Movel Mecanismo Ceramica 1/4 Volta",
-    price: 40.74,
+    price: 38.30,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_739661-MLA99601899336_122025-F.webp",
     url: "https://mercadolivre.com/sec/1mBNPwF",
     category: "Casa",
-    rating: 4.4
+    rating: 4.7
   },
   {
     id: "casa-04",
     name: "Aspirador De Pó e Água Wap Gtw 10 Compacto 1400w 10 Litros",
-    price: 259.00,
+    price: 256.35,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_944970-MLA99949674111_112025-F.webp",
     url: "https://mercadolivre.com/sec/2y2xuLL",
     category: "Casa",
@@ -42,7 +42,7 @@ export const products: Product[] = [
   {
     id: "casa-05",
     name: "Kit 10 Potes Vidro 640ml Hermético Marmita Forno Refratário Star House",
-    price: 133.77,
+    price: 119.97,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_851388-MLA99988740405_112025-F.webp",
     url: "https://mercadolivre.com/sec/2gJbDcE",
     category: "Casa",
@@ -51,25 +51,25 @@ export const products: Product[] = [
   {
     id: "casa-06",
     name: "Ventilador de Mesa 40cm Super Power Mondial 140W - VSP-40-B",
-    price: 182.33,
+    price: 129.99,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_676389-MLA99701015652_122025-F.webp",
     url: "https://mercadolivre.com/sec/2VnbLrp",
     category: "Casa",
-    rating: 4.7
+    rating: 4.8
   },
   {
     id: "casa-07",
     name: "Piscina Inflável Fun Redonda 1400l Com Kit Reparo - Mor",
-    price: 159.90,
+    price: 128.15,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_644462-MLA91572624592_092025-F.webp",
     url: "https://mercadolivre.com/sec/15JXZMr",
     category: "Casa",
-    rating: 4.7
+    rating: 4.8
   },
   {
     id: "casa-08",
     name: "Liquidificador Britânia Turbo 900W 2,6L 4 Velocidades Preto BLQ970P",
-    price: 1132.05,
+    price: 175.90,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_994620-MLA97796776944_112025-F.webp",
     url: "https://mercadolivre.com/sec/14Di5Mq",
     category: "Casa",
@@ -78,7 +78,7 @@ export const products: Product[] = [
   {
     id: "casa-09",
     name: "Garrafa Térmica 800ml Água Squeeze Inox Academia",
-    price: 38.94,
+    price: 36.89,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_963485-MLB94579785063_102025-F.webp",
     url: "https://mercadolivre.com/sec/1FFKxuj",
     category: "Casa",
@@ -87,7 +87,7 @@ export const products: Product[] = [
   {
     id: "casa-10",
     name: "Escova elétrica de limpeza JY-6010 - Branco",
-    price: 62.99,
+    price: 66.86,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_824959-MLA99446279174_112025-F.webp",
     url: "https://mercadolivre.com/sec/1bGcHEp",
     category: "Casa",
@@ -105,7 +105,7 @@ export const products: Product[] = [
   {
     id: "casa-12",
     name: "Garrafa Térmica 1 Litro Com Termômetro Led Para Chás / Café",
-    price: 47.72,
+    price: 48.45,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_658148-MLB89993492671_082025-F.webp",
     url: "https://mercadolivre.com/sec/1i1sBDm",
     category: "Casa",
@@ -116,7 +116,7 @@ export const products: Product[] = [
   {
     id: "ele-01",
     name: "Smart Tv 32'' LG Hd 32LR600BPSA Processador 5 Ger6 Alexa Webos",
-    price: 989.12,
+    price: 999.99,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_934018-MLA99576753908_122025-F.webp",
     url: "https://mercadolivre.com/sec/1QPpN4n",
     category: "Eletrônicos",
@@ -125,7 +125,7 @@ export const products: Product[] = [
   {
     id: "ele-02",
     name: "Console Sony Playstation 5 Edição Slim Disk 1tb Branco + Controle Sem Fio Dualsense Ps5 Branco",
-    price: 3802.77,
+    price: 3812.00,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_921596-MLA100042443481_122025-F.webp",
     url: "https://mercadolivre.com/sec/26eb6WW",
     category: "Eletrônicos",
@@ -135,7 +135,7 @@ export const products: Product[] = [
   {
     id: "ele-03",
     name: "Notebook Lenovo Ideapad 1 15iru7 Intel Core i3-1315u 8gb 256gb Ssd Windows 11 15.6 - 83qj0001bo Cloud Grey",
-    price: 2365.44,
+    price: 3009.00,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_718154-MLA99988492837_112025-F.webp",
     url: "https://mercadolivre.com/sec/1qDYZN4",
     category: "Eletrônicos",
@@ -144,7 +144,7 @@ export const products: Product[] = [
   {
     id: "ele-04",
     name: "Parafusadeira Furadeira De Impacto The Black Tools Profissional TB-21PX 2 Baterias Com Maleta 60Hz Amarelo",
-    price: 199.90,
+    price: 170.91,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_865332-MLA96868279679_102025-F.webp",
     url: "https://mercadolivre.com/sec/2K7fHZz",
     category: "Eletrônicos",
@@ -153,7 +153,7 @@ export const products: Product[] = [
   {
     id: "ele-05",
     name: "Smartphone Motorola Moto g05 - 128GB 12GB (4GB RAM + 8GB Ram Boost) e Camera 50MP com AI Bateria de 5200 mAh Tela 6.7 com Superbrilho - Cinza",
-    price: 620.10,
+    price: 959.00,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_613398-MLA99494739094_112025-F.webp",
     url: "https://mercadolivre.com/sec/1WoPu24",
     category: "Eletrônicos",
@@ -163,7 +163,7 @@ export const products: Product[] = [
   {
     id: "ele-06",
     name: "Câmera Segurança Ip Externa Wifi A28 App Icsee Prova Dagua IP66 Dome Lente Dupla Lentes 2 Em 1 Vigilancia Visão Noturna Infravermelho Casenn",
-    price: 129.20,
+    price: 119.90,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_635583-MLA100019457791_122025-F.webp",
     url: "https://mercadolivre.com/sec/1f7mRv3",
     category: "Eletrônicos",
@@ -172,7 +172,7 @@ export const products: Product[] = [
   {
     id: "ele-07",
     name: "Chapinha Lizze Profissional 480 Extreme",
-    price: 439.00,
+    price: 380.37,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_723941-MLA99985257413_112025-F.webp",
     url: "https://mercadolivre.com/sec/1Dn9BWz",
     category: "Eletrônicos",
@@ -181,7 +181,7 @@ export const products: Product[] = [
   {
     id: "ele-08",
     name: "Bicicleta Aro 29 Aço Carbono Freios A Disco Suspensão 21 Vel",
-    price: 710.91,
+    price: 676.86,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_872071-MLB91746760832_092025-F.webp",
     url: "https://mercadolivre.com/sec/2Jq2eok",
     category: "Eletrônicos",
@@ -190,7 +190,7 @@ export const products: Product[] = [
   {
     id: "ele-09",
     name: "Aparador De Pelos Super Groom 10 Mondial 6W Bivolt BG-03",
-    price: 118.99,
+    price: 103.71,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_981084-MLA99522140924_122025-F.webp",
     url: "https://mercadolivre.com/sec/2uW9avV",
     category: "Eletrônicos",
@@ -199,7 +199,7 @@ export const products: Product[] = [
   {
     id: "ele-10",
     name: "Aparador De Pelos Philips Oneblade Qp1424/10, Preto",
-    price: 158.57,
+    price: 129.00,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_977272-MLA99499029044_112025-F.webp",
     url: "https://mercadolivre.com/sec/2W8wCsC",
     category: "Eletrônicos",
@@ -208,7 +208,7 @@ export const products: Product[] = [
   {
     id: "ele-11",
     name: "Máquina de Lavar 15kg Electrolux Premium Care com Cesto Inox, Jet&Clean e Time Control LEC15",
-    price: 1994.05,
+    price: 2099.00,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_764789-MLU77364385401_072024-F.webp",
     url: "https://mercadolivre.com/sec/1Kv1mFF",
     category: "Eletrônicos",
@@ -217,7 +217,7 @@ export const products: Product[] = [
   {
     id: "ele-12",
     name: "Monitor Gamer Samsung 24 FHD,100 Hz, HDMI, VGA,Preto, S3",
-    price: 548.32,
+    price: 545.39,
     image: "https://http2.mlstatic.com/D_NQ_NP_2X_931100-MLA99973037971_112025-F.webp",
     url: "https://mercadolivre.com/sec/1xEbpHC",
     category: "Eletrônicos",
