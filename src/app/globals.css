@@ -1,4 +1,3 @@
-/* BUILD UPDATE: 06/01/2026 - v2.0 */
 @import "tailwindcss";
 
 :root {
@@ -9,28 +8,31 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  /* Animação para o banner de urgência */
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-mono: "Courier New", Courier, monospace;
   --animate-gradient-x: gradient-x 3s ease infinite;
 }
 
 @keyframes gradient-x {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 @layer utilities {
-  /* Esconde a barra de rolagem mas mantém a funcionalidade */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
 
-  /* Efeito de fade na borda direita para indicar scroll lateral */
   .mask-fade-edge {
     mask-image: linear-gradient(to right, black 85%, transparent 100%);
     -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
@@ -38,7 +40,7 @@
 }
 
 body {
-  background: #F8FAFC;
+  background: #f8fafc;
   color: var(--foreground);
   font-family: var(--font-sans);
 }
