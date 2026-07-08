@@ -237,6 +237,27 @@ export async function updateManualProduct(formData: FormData) {
   revalidatePath("/");
 }
 
+export async function deleteProduct(formData: FormData) {
+  await requireAdmin();
+
+  const id = requiredString(formData, "id");
+  const confirmDelete = formData.get("confirm_delete") === "on";
+
+  if (!confirmDelete) {
+    throw new Error("Confirme a exclusao do produto antes de apagar.");
+  }
+
+  const supabase = createServiceSupabaseClient();
+  const { error } = await supabase.from("products").delete().eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+}
+
 export async function toggleProductActive(formData: FormData) {
   await requireAdmin();
 
@@ -352,11 +373,4 @@ export async function updateSearchRule(formData: FormData) {
 
   revalidatePath("/admin");
 }
-
-
-
-
-
-
-
 

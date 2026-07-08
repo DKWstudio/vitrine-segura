@@ -6,6 +6,7 @@ import { normalizeSupabaseProduct, productColumns } from "@/lib/products";
 import type { AffiliateProduct, ClickSummary, ProductSource, SearchRule } from "@/types/product";
 import {
   createManualProduct,
+  deleteProduct,
   importMercadoLivreProduct,
   createSearchRule,
   loginAdmin,
@@ -331,6 +332,16 @@ function ProductsTable({ products }: { products: AffiliateProduct[] }) {
                         {product.is_featured ? "Remover destaque" : "Destacar"}
                       </button>
                     </form>
+                    <form action={deleteProduct} className="rounded-lg border border-red-200 p-2">
+                      <input type="hidden" name="id" value={product.id} />
+                      <label className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase text-red-700">
+                        <input name="confirm_delete" type="checkbox" required />
+                        Confirmar
+                      </label>
+                      <button className="w-full rounded-lg bg-red-600 px-3 py-2 text-xs font-black uppercase text-white">
+                        Excluir
+                      </button>
+                    </form>
                   </div>
                 </td>
               </tr>
@@ -474,7 +485,4 @@ export default async function AdminPage({
     </main>
   );
 }
-
-
-
 
