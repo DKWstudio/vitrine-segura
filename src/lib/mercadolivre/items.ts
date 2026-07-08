@@ -34,6 +34,11 @@ interface MercadoLivreUserDetail {
   };
 }
 
+interface MercadoLivreBatchItemResponse {
+  code: number;
+  body?: MercadoLivreItemDetail | { message?: string; error?: string; status?: number };
+}
+
 function createHeaders(accessToken?: string): HeadersInit {
   return {
     Accept: "application/json",
@@ -72,6 +77,64 @@ async function fetchMercadoLivreJson<T>(url: string, accessToken?: string): Prom
   }
 
   return (await response.json()) as T;
+}
+
+async function fetchMercadoLivreJsonPublicFirst<T>(url: string, accessToken?: string): Promise<T> {
+  const errors: string[] = [];
+  const publicResponse = await requestMercadoLivre(url);
+
+  if (publicResponse.ok) {
+    return (await publicResponse.json()) as T;
+  }
+
+  errors.push(`public ${publicResponse.status}: ${(await publicResponse.text()).slice(0, 180)}`);
+
+  if (accessToken) {
+    let tokenResponse = await requestMercadoLivre(url, accessToken);
+
+    if ((tokenResponse.status === 401 || tokenResponse.status === 403) && process.env.MERCADO_LIVRE_REFRESH_TOKEN) {
+      const refreshed = await refreshMercadoLivreAccessToken();
+      const refreshedToken = refreshed?.access_token;
+
+      if (refreshedToken) {
+        tokenResponse = await requestMercadoLivre(url, refreshedToken);
+      }
+    }
+
+    if (tokenResponse.ok) {
+      return (await tokenResponse.json()) as T;
+    }
+
+    errors.push(`token ${tokenResponse.status}: ${(await tokenResponse.text()).slice(0, 180)}`);
+  }
+
+  throw new Error(`Mercado Livre request failed after public/token attempts: ${errors.join(" | ")}`);
+}
+
+async function getMercadoLivreItemDetailById(itemId: string, accessToken?: string) {
+  const itemUrl = `https://api.mercadolibre.com/items/${itemId}`;
+
+  try {
+    return await fetchMercadoLivreJsonPublicFirst<MercadoLivreItemDetail>(itemUrl, accessToken);
+  } catch (singleError) {
+    const batchUrl = `https://api.mercadolibre.com/items?ids=${encodeURIComponent(itemId)}`;
+    const batch = await fetchMercadoLivreJsonPublicFirst<MercadoLivreBatchItemResponse[]>(
+      batchUrl,
+      accessToken,
+    );
+    const firstResult = batch[0];
+
+    if (firstResult?.code === 200 && firstResult.body && "id" in firstResult.body) {
+      return firstResult.body;
+    }
+
+    const batchMessage = firstResult?.body && "message" in firstResult.body ? firstResult.body.message : "sem detalhe";
+    throw new Error(
+      `Mercado Livre item lookup failed for ${itemId}. Single: ${
+        singleError instanceof Error ? singleError.message : "Unknown error"
+      }. Batch: ${firstResult?.code || "sem codigo"} ${batchMessage}`,
+    );
+  }
 }
 
 function normalizeMercadoLivreItemId(itemId?: string) {
@@ -153,10 +216,7 @@ export async function resolveMercadoLivreProductUrl(input: string) {
 
 export async function getMercadoLivreItemById(itemId: string) {
   const accessToken = getMercadoLivreAccessToken();
-  const item = await fetchMercadoLivreJson<MercadoLivreItemDetail>(
-    `https://api.mercadolibre.com/items/${itemId}`,
-    accessToken,
-  );
+  const item = await getMercadoLivreItemDetailById(itemId, accessToken);
 
   let seller: MercadoLivreUserDetail | null = null;
 
