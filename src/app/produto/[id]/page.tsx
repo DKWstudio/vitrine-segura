@@ -1,3 +1,4 @@
+﻿import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, CheckCircle, Shield, ShoppingBag, Star, Truck } from "lucide-react";
@@ -5,9 +6,49 @@ import PriceTag from "@/components/ui/PriceTag";
 import ProductGrid from "@/components/ui/ProductGrid";
 import SourceBadge from "@/components/ui/SourceBadge";
 import { getActiveProductById, getRelatedProducts } from "@/lib/products";
+import { absoluteUrl, truncateDescription } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const product = await getActiveProductById(id);
+
+  if (!product) {
+    return {
+      title: "Produto nao encontrado",
+    };
+  }
+
+  const title = product.title;
+  const description = truncateDescription(
+    `Produto em ${product.category} por ${product.price.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    })}. Link oficial via Vitrine Segura.`,
+  );
+  const image = product.image_url || undefined;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: absoluteUrl(`/produto/${product.id}`),
+    },
+    openGraph: {
+      title,
+      description,
+      url: absoluteUrl(`/produto/${product.id}`),
+      siteName: "Vitrine Segura",
+      type: "website",
+      images: image ? [{ url: image, alt: product.title }] : undefined,
+    },
+  };
+}
 function formatCount(value: number | null) {
   if (value === null) {
     return null;
@@ -151,3 +192,5 @@ export default async function ProductPage({
     </main>
   );
 }
+
+

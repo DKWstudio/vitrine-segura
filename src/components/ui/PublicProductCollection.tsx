@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CheckCircle, Shield, Star, Truck } from "lucide-react";
 import ProductGrid from "@/components/ui/ProductGrid";
+import { slugifyCategory } from "@/lib/seo";
 import type { AffiliateProduct, ProductSource } from "@/types/product";
 
 const sourceOptions: Array<{ id: "all" | ProductSource; label: string }> = [
@@ -18,14 +19,6 @@ interface PublicProductCollectionProps {
   selectedSource: "all" | ProductSource;
 }
 
-export function slugifyCategory(category: string) {
-  return category
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 export function getSourceFromParam(value: string | string[] | undefined): "all" | ProductSource {
   const source = Array.isArray(value) ? value[0] : value;
@@ -167,3 +160,4 @@ export default function PublicProductCollection({
     </div>
   );
 }
+

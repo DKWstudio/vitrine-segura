@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { CheckCircle, Shield, Star, Truck } from "lucide-react";
 import ProductCatalog from "@/components/ui/ProductCatalog";
 import { getActiveProducts } from "@/lib/products";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Achadinhos uteis",
+  description: "Produtos selecionados do Mercado Livre e Shopee por categorias, preco e destaque.",
+};
 
 function TrustCards() {
   const items = [
@@ -59,3 +65,4 @@ export default async function VitrineSegura() {
     </div>
   );
 }
+
