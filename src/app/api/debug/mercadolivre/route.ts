@@ -21,7 +21,7 @@ function isAuthorized(request: NextRequest) {
   return authHeader === `Bearer ${secret}` || querySecret === secret;
 }
 
-async function fetchStatus(url: string, accessToken?: string) {
+async function fetchStatus(url: string, accessToken?: string, includeBody = true) {
   const response = await fetch(url, {
     headers: {
       Accept: "application/json",
@@ -32,12 +32,12 @@ async function fetchStatus(url: string, accessToken?: string) {
     cache: "no-store",
   });
 
-  const body = await response.text();
+  const body = includeBody ? await response.text() : "";
 
   return {
     status: response.status,
     ok: response.ok,
-    body: body.slice(0, 500),
+    body: includeBody ? body.slice(0, 500) : undefined,
   };
 }
 
@@ -48,13 +48,12 @@ export async function GET(request: NextRequest) {
 
   const accessToken = getMercadoLivreAccessToken();
   const status = getMercadoLivreAuthStatus();
+  const searchUrl = "https://api.mercadolibre.com/sites/MLB/search?q=suplementos&limit=1";
   const usersMe = accessToken
-    ? await fetchStatus("https://api.mercadolibre.com/users/me", accessToken)
+    ? await fetchStatus("https://api.mercadolibre.com/users/me", accessToken, false)
     : null;
-  const search = await fetchStatus(
-    "https://api.mercadolibre.com/sites/MLB/search?q=suplementos&limit=1",
-    accessToken,
-  );
+  const searchWithToken = await fetchStatus(searchUrl, accessToken);
+  const searchPublic = await fetchStatus(searchUrl);
 
   let refresh: {
     ok: boolean;
@@ -83,7 +82,8 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     env: status,
     users_me: usersMe,
-    search,
+    search_with_token: searchWithToken,
+    search_public: searchPublic,
     refresh,
   });
 }
