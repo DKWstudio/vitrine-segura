@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, CheckCircle, Shield, ShoppingBag, Star, Truck } from "lucide-react";
 import PriceTag from "@/components/ui/PriceTag";
 import ProductGrid from "@/components/ui/ProductGrid";
+import ShareButtons from "@/components/ui/ShareButtons";
 import SourceBadge from "@/components/ui/SourceBadge";
 import { getActiveProductById, getRelatedProducts } from "@/lib/products";
 import { absoluteUrl, defaultOgImage, siteName, truncateDescription } from "@/lib/seo";
@@ -123,6 +124,7 @@ export default async function ProductPage({
   const relatedProducts = await getRelatedProducts(product, 4);
   const sourceLabel = product.source === "shopee" ? "Shopee" : "Mercado Livre";
   const productJsonLd = buildProductJsonLd(product, sourceLabel);
+  const shareUrl = absoluteUrl(`/produto/${product.id}`);
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] text-slate-950">
@@ -219,6 +221,8 @@ export default async function ProductPage({
             <ArrowRight className="h-4 w-4" />
           </a>
 
+          <ShareButtons title={product.title} url={shareUrl} />
+
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="rounded-xl bg-white p-3 text-[10px] font-black uppercase text-slate-600">
               <Shield className="mx-auto mb-1 h-5 w-5 text-blue-600" />
@@ -248,6 +252,8 @@ export default async function ProductPage({
     </main>
   );
 }
+
+
 
 
 
