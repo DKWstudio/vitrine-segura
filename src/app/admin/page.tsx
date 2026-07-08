@@ -1,10 +1,12 @@
-﻿import { redirect } from "next/navigation";
+import { Fragment } from "react";
+import { redirect } from "next/navigation";
 import { isAdminAuthenticated } from "@/lib/admin/auth";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 import { normalizeSupabaseProduct, productColumns } from "@/lib/products";
 import type { AffiliateProduct, ClickSummary, ProductSource, SearchRule } from "@/types/product";
 import {
   createManualProduct,
+  importMercadoLivreProduct,
   createSearchRule,
   loginAdmin,
   logoutAdmin,
@@ -209,6 +211,28 @@ function ProductFields({ product }: { product?: AffiliateProduct }) {
   );
 }
 
+function ImportMercadoLivreForm() {
+  return (
+    <form action={importMercadoLivreProduct} className="grid gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4 md:grid-cols-12">
+      <input name="product_url" required placeholder="Cole aqui o link completo do produto Mercado Livre" className="rounded-lg border border-blue-200 px-3 py-2 text-sm md:col-span-5" />
+      <input name="category" required defaultValue="Casa" placeholder="Categoria" className="rounded-lg border border-blue-200 px-3 py-2 text-sm md:col-span-2" />
+      <input name="affiliate_url" placeholder="URL afiliada oficial opcional" className="rounded-lg border border-blue-200 px-3 py-2 text-sm md:col-span-3" />
+      <input name="rating" type="number" step="0.1" min="0" max="5" placeholder="Nota opcional" className="rounded-lg border border-blue-200 px-3 py-2 text-sm md:col-span-1" />
+      <label className="flex items-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 md:col-span-1">
+        <input name="is_featured" type="checkbox" />
+        Destaque
+      </label>
+      <div className="md:col-span-12 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <p className="text-xs font-medium text-blue-800">
+          Use link completo com ID MLB. Links curtos como mercadolivre.com/sec podem nao funcionar.
+        </p>
+        <button className="rounded-xl bg-blue-600 px-5 py-3 text-xs font-black uppercase text-white">
+          Importar dados do Mercado Livre
+        </button>
+      </div>
+    </form>
+  );
+}
 function ManualProductForm() {
   return (
     <form action={createManualProduct} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-12">
@@ -242,7 +266,7 @@ function ProductsTable({ products }: { products: AffiliateProduct[] }) {
         </thead>
         <tbody className="divide-y divide-slate-100">
           {products.map((product) => (
-            <>
+            <Fragment key={product.id}>
               <tr key={product.id} className="align-top">
                 <td className="p-3">
                   <div className="flex gap-3">
@@ -304,7 +328,7 @@ function ProductsTable({ products }: { products: AffiliateProduct[] }) {
                   </details>
                 </td>
               </tr>
-            </>
+            </Fragment>
           ))}
         </tbody>
       </table>
@@ -364,6 +388,7 @@ export default async function AdminPage({
             <h2 className="text-xl font-black uppercase">Cadastrar produto manual</h2>
             <p className="text-sm text-slate-500">Use links oficiais e preencha affiliate_url apenas com link afiliado valido.</p>
           </div>
+          <ImportMercadoLivreForm />
           <ManualProductForm />
         </section>
 
@@ -422,3 +447,4 @@ export default async function AdminPage({
     </main>
   );
 }
+

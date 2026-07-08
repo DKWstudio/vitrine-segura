@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -10,6 +10,7 @@ import {
   isValidAdminPassword,
 } from "@/lib/admin/auth";
 import { calculateProductScore } from "@/lib/adapters/normalization";
+import { extractMercadoLivreItemId, getMercadoLivreItemById } from "@/lib/mercadolivre/items";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 import type { ProductSource } from "@/types/product";
 
@@ -123,6 +124,56 @@ export async function logoutAdmin() {
   redirect("/admin");
 }
 
+export async function importMercadoLivreProduct(formData: FormData) {
+  await requireAdmin();
+
+  const productUrl = requiredString(formData, "product_url");
+  const category = requiredString(formData, "category");
+  const itemId = extractMercadoLivreItemId(productUrl);
+
+  if (!itemId) {
+    throw new Error(
+      "Nao encontrei o ID MLB no link. Use o link completo do produto, nao o link curto mercadolivre.com/sec/.",
+    );
+  }
+
+  const item = await getMercadoLivreItemById(itemId);
+  const rating = optionalNumber(formData.get("rating"));
+  const soldCount = item.sold_count;
+  const affiliateUrl = optionalString(formData, "affiliate_url");
+  const price = item.price;
+  const supabase = createServiceSupabaseClient();
+
+  const { error } = await supabase.from("products").upsert(
+    {
+      ...item,
+      category,
+      affiliate_url: affiliateUrl,
+      rating,
+      reviews_count: optionalInteger(formData.get("reviews_count")),
+      is_active: true,
+      is_featured: formData.get("is_featured") === "on",
+      score: calculateProductScore({
+        price,
+        rating,
+        sold_count: soldCount,
+        seller_reputation: item.seller_reputation,
+      }),
+      last_checked_at: new Date().toISOString(),
+    },
+    {
+      onConflict: "source,external_id",
+      ignoreDuplicates: false,
+    },
+  );
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+}
 export async function createManualProduct(formData: FormData) {
   await requireAdmin();
 
@@ -272,3 +323,4 @@ export async function updateSearchRule(formData: FormData) {
 
   revalidatePath("/admin");
 }
+
