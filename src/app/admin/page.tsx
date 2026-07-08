@@ -1,12 +1,12 @@
 import { Fragment } from "react";
 import { redirect } from "next/navigation";
+import DeleteProductButton from "@/components/admin/DeleteProductButton";
 import { isAdminAuthenticated } from "@/lib/admin/auth";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 import { normalizeSupabaseProduct, productColumns } from "@/lib/products";
 import type { AffiliateProduct, ClickSummary, ProductSource, SearchRule } from "@/types/product";
 import {
   createManualProduct,
-  deleteProduct,
   importMercadoLivreProduct,
   createSearchRule,
   loginAdmin,
@@ -104,6 +104,9 @@ async function getAdminData() {
 
   return {
     products: (productsResult.data || []).map((product) => normalizeSupabaseProduct(product)),
+    clickCountsByProduct: Object.fromEntries(
+      Array.from(clickMap.entries()).map(([productId, summary]) => [productId, summary.clicks]),
+    ) as Record<string, number>,
     rules: (rulesResult.data || []).map((rule) => normalizeRule(rule)),
     clickSummaries: Array.from(clickMap.values())
       .sort((a, b) => b.clicks - a.clicks)
@@ -270,7 +273,13 @@ function ManualProductForm() {
   );
 }
 
-function ProductsTable({ products }: { products: AffiliateProduct[] }) {
+function ProductsTable({
+  products,
+  clickCountsByProduct,
+}: {
+  products: AffiliateProduct[];
+  clickCountsByProduct: Record<string, number>;
+}) {
   if (products.length === 0) {
     return <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">Nenhum produto salvo no Supabase ainda.</p>;
   }
@@ -332,16 +341,11 @@ function ProductsTable({ products }: { products: AffiliateProduct[] }) {
                         {product.is_featured ? "Remover destaque" : "Destacar"}
                       </button>
                     </form>
-                    <form action={deleteProduct} className="rounded-lg border border-red-200 p-2">
-                      <input type="hidden" name="id" value={product.id} />
-                      <label className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase text-red-700">
-                        <input name="confirm_delete" type="checkbox" required />
-                        Confirmar
-                      </label>
-                      <button className="w-full rounded-lg bg-red-600 px-3 py-2 text-xs font-black uppercase text-white">
-                        Excluir
-                      </button>
-                    </form>
+                    <DeleteProductButton
+                      productId={product.id}
+                      productTitle={product.title}
+                      clickCount={clickCountsByProduct[product.id] || 0}
+                    />
                   </div>
                 </td>
               </tr>
@@ -453,7 +457,7 @@ export default async function AdminPage({
             <h2 className="text-xl font-black uppercase">Produtos encontrados</h2>
             <p className="text-sm text-slate-500">Edite dados, link afiliado, status e destaque.</p>
           </div>
-          <ProductsTable products={data.products} />
+          <ProductsTable products={data.products} clickCountsByProduct={data.clickCountsByProduct} />
         </section>
 
         <section className="space-y-4">
