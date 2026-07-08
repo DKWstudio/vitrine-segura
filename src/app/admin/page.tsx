@@ -406,7 +406,7 @@ export default async function AdminPage({
           </div>
         </header>
 
-        <AdminNotice error={noticeError} success={noticeSuccess} />
+        <AdminNotice key={noticeError || noticeSuccess || "admin-notice"} error={noticeError} success={noticeSuccess} />
 
         <section className="space-y-4">
           <div>

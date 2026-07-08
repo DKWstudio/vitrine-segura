@@ -9,11 +9,9 @@ interface AdminNoticeProps {
 
 export default function AdminNotice({ error, success }: AdminNoticeProps) {
   const message = error || success;
-  const [isVisible, setIsVisible] = useState(Boolean(message));
+  const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
-    setIsVisible(Boolean(message));
-
     if (!message) {
       return;
     }

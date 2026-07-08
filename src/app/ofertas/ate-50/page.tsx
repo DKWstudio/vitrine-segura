@@ -1,0 +1,32 @@
+import PublicProductCollection, {
+  filterProductsBySource,
+  getSourceFromParam,
+} from "@/components/ui/PublicProductCollection";
+import { getActiveProducts } from "@/lib/products";
+
+export const dynamic = "force-dynamic";
+
+type PageSearchParams = Record<string, string | string[] | undefined>;
+
+export default async function OffersUpTo50Page({
+  searchParams,
+}: {
+  searchParams?: Promise<PageSearchParams>;
+}) {
+  const queryParams: PageSearchParams = searchParams ? await searchParams : {};
+  const allProducts = await getActiveProducts();
+  const selectedSource = getSourceFromParam(queryParams.source);
+  const offerProducts = allProducts.filter((product) => product.price <= 50);
+  const products = filterProductsBySource(offerProducts, selectedSource);
+
+  return (
+    <PublicProductCollection
+      title="Ofertas ate R$ 50"
+      subtitle="Produtos baratos para compras rapidas, separados por fonte e categoria."
+      products={products}
+      allProducts={allProducts}
+      basePath="/ofertas/ate-50"
+      selectedSource={selectedSource}
+    />
+  );
+}
