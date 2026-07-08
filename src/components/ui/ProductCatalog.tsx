@@ -17,15 +17,6 @@ const sourceOptions: Array<{ id: "all" | ProductSource; label: string }> = [
   { id: "shopee", label: "Shopee" },
 ];
 
-function slugifyCategory(category: string) {
-  return category
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 export default function ProductCatalog({ products }: ProductCatalogProps) {
   const categories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(products.map((product) => product.category)));
@@ -85,14 +76,8 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-              Paginas:
+              Ofertas:
             </span>
-            <Link
-              href={`/categoria/${slugifyCategory(selectedCategory)}`}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-wider text-slate-700 hover:border-[#FFE600]"
-            >
-              Ver categoria
-            </Link>
             <Link
               href="/ofertas/ate-50"
               className="rounded-full border border-green-200 bg-green-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-green-700"
@@ -115,3 +100,4 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
     </>
   );
 }
+

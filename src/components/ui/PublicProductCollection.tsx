@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CheckCircle, Shield, Star, Truck } from "lucide-react";
 import ProductGrid from "@/components/ui/ProductGrid";
 import type { AffiliateProduct, ProductSource } from "@/types/product";
 
@@ -44,6 +45,33 @@ function getSourceHref(basePath: string, source: "all" | ProductSource) {
   return source === "all" ? basePath : `${basePath}?source=${source}`;
 }
 
+function TrustCards() {
+  const items = [
+    { icon: Star, text: "4.5+ Estrelas" },
+    { icon: Truck, text: "Envio Full" },
+    { icon: Shield, text: "Compra Segura" },
+    { icon: CheckCircle, text: "Link Oficial" },
+  ];
+
+  return (
+    <section className="relative z-20 -mt-12 container mx-auto px-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
+        {items.map((item) => (
+          <div
+            key={item.text}
+            className="bg-white p-4 rounded-2xl shadow-xl border border-slate-100 flex flex-col items-center transition-all hover:translate-y-[-4px]"
+          >
+            <item.icon className="h-6 w-6 text-blue-600 mb-2" />
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+              {item.text}
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function PublicProductCollection({
   title,
   subtitle,
@@ -57,33 +85,46 @@ export default function PublicProductCollection({
   );
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] px-4 py-8 text-slate-950">
-      <section className="mx-auto max-w-[1200px] space-y-8">
-        <header className="rounded-2xl bg-slate-950 p-6 text-white">
-          <Link href="/" className="text-xs font-black uppercase tracking-[0.25em] text-[#FFE600]">
-            Vitrine Segura
+    <div className="min-h-screen bg-[#F8FAFC] font-sans antialiased text-slate-900">
+      <header className="relative overflow-hidden bg-[#0F172A] pb-24 pt-16 text-center">
+        <div className="container relative z-10 mx-auto px-4">
+          <Link href="/" className="mb-6 inline-block rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+            <img
+              src="/img/vitrineSegura.png"
+              alt="Vitrine Segura"
+              className="h-auto w-full max-w-[220px] md:max-w-[420px]"
+            />
           </Link>
-          <h1 className="mt-3 text-3xl font-black uppercase md:text-5xl">{title}</h1>
-          <p className="mt-2 max-w-2xl text-sm font-medium text-slate-300 md:text-base">{subtitle}</p>
-        </header>
+          <h1 className="text-4xl font-black uppercase italic tracking-tighter text-white md:text-7xl">
+            {title}
+          </h1>
+          <p className="mx-auto mt-2 max-w-2xl text-sm font-medium italic text-slate-400 md:text-xl">
+            {subtitle}
+          </p>
+        </div>
+      </header>
 
-        <nav className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
-          <div className="flex flex-wrap gap-2">
+      <TrustCards />
+
+      <nav className="sticky top-0 z-50 mt-8 border-b border-slate-200 bg-white/95 py-5 shadow-sm backdrop-blur-md">
+        <div className="container mx-auto space-y-4 px-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ofertas:</span>
             <Link
               href="/ofertas/ate-50"
-              className="rounded-full border border-green-200 bg-green-50 px-4 py-2 text-xs font-black uppercase text-green-700"
+              className="rounded-full border border-green-200 bg-green-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-green-700"
             >
               Ate R$ 50
             </Link>
             <Link
               href="/ofertas/ate-100"
-              className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-black uppercase text-blue-700"
+              className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-blue-700"
             >
               Ate R$ 100
             </Link>
             <Link
               href="/"
-              className="rounded-full border border-slate-200 px-4 py-2 text-xs font-black uppercase text-slate-600"
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-wider text-slate-700 hover:border-[#FFE600]"
             >
               Home
             </Link>
@@ -106,23 +147,23 @@ export default function PublicProductCollection({
             ))}
           </div>
 
-          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
+          <div className="flex flex-nowrap gap-3 overflow-x-auto pb-1 -mx-4 px-4">
             {categories.map((category) => (
               <Link
                 key={category}
                 href={`/categoria/${slugifyCategory(category)}`}
-                className="flex-shrink-0 rounded-xl border-2 border-slate-950 bg-slate-950 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-white hover:border-[#FFE600] hover:bg-[#FFE600] hover:text-slate-950"
+                className="flex-shrink-0 rounded-xl border-2 border-[#0F172A] bg-[#0F172A] px-6 py-3 text-[11px] font-black uppercase tracking-wider text-white transition-all hover:border-[#FFE600] hover:bg-[#FFE600] hover:text-[#0F172A]"
               >
                 {category}
               </Link>
             ))}
           </div>
-        </nav>
+        </div>
+      </nav>
 
-        <section>
-          <ProductGrid products={products} />
-        </section>
-      </section>
-    </main>
+      <main className="container mx-auto max-w-[1200px] px-4 py-8">
+        <ProductGrid products={products} />
+      </main>
+    </div>
   );
 }
