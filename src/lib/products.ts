@@ -123,4 +123,16 @@ export async function getActiveProducts(): Promise<AffiliateProduct[]> {
     return fallbackProducts;
   }
 }
+export async function getActiveProductById(id: string): Promise<AffiliateProduct | null> {
+  const products = await getActiveProducts();
+  return products.find((product) => product.id === id) || null;
+}
+
+export async function getRelatedProducts(product: AffiliateProduct, limit = 4): Promise<AffiliateProduct[]> {
+  const products = await getActiveProducts();
+
+  return products
+    .filter((item) => item.id !== product.id && item.category === product.category)
+    .slice(0, limit);
+}
 

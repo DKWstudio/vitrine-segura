@@ -11,8 +11,7 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const sourceLabel = product.source === "shopee" ? "Shopee" : "Mercado Livre";
-  const outboundUrl = `/go/${product.id}`;
+  const detailUrl = `/produto/${product.id}`;
 
   return (
     <div
@@ -59,16 +58,14 @@ export default function ProductCard({ product }: ProductCardProps) {
         <PriceTag price={product.price} oldPrice={product.old_price} />
 
         <a
-          href={outboundUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+          href={detailUrl}
           className={`w-full flex items-center justify-center gap-2 py-3.5 px-2 rounded-xl font-black text-[10px] uppercase tracking-tighter transition-all active:scale-95 shadow-lg ${
             product.is_featured
               ? "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-amber-100"
               : "bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-blue-100"
           }`}
         >
-          <span className="text-center">Ver na {sourceLabel}</span>
+          <span className="text-center">Ver detalhes</span>
           <ArrowRight className="h-3.5 w-3.5 flex-shrink-0" />
         </a>
 
