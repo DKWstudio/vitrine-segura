@@ -53,6 +53,24 @@ function requiredNumber(formData: FormData, key: string) {
   return value;
 }
 
+function redirectWithAdminMessage(key: "import_error" | "import_success", message: string): never {
+  redirect(`/admin?${key}=${encodeURIComponent(message)}`);
+}
+
+function getMercadoLivreImportErrorMessage(error: unknown, itemId: string) {
+  const message = error instanceof Error ? error.message : "Erro desconhecido";
+
+  if (message.includes(" 404 ") || message.includes('"status":404')) {
+    return `Nao encontrei o item ${itemId} no Mercado Livre. Use o link do anuncio, normalmente com MLB-1234567890, e evite link de catalogo /p/ ou link curto.`;
+  }
+
+  if (message.includes(" 401 ") || message.includes(" 403 ")) {
+    return "O Mercado Livre recusou a consulta desse item. Refaca a conexao OAuth e tente novamente.";
+  }
+
+  return `Nao consegui importar esse produto: ${message}`;
+}
+
 function normalizeSource(value: string): ProductSource {
   return value === "shopee" ? "shopee" : "mercadolivre";
 }
@@ -132,12 +150,20 @@ export async function importMercadoLivreProduct(formData: FormData) {
   const itemId = extractMercadoLivreItemId(productUrl);
 
   if (!itemId) {
-    throw new Error(
-      "Nao encontrei o ID MLB no link. Use o link completo do produto, nao o link curto mercadolivre.com/sec/.",
+    redirectWithAdminMessage(
+      "import_error",
+      "Nao encontrei o ID do anuncio no link. Abra o produto no Mercado Livre e use o link completo que contenha MLB-1234567890.",
     );
   }
 
-  const item = await getMercadoLivreItemById(itemId);
+  let item: Awaited<ReturnType<typeof getMercadoLivreItemById>>;
+
+  try {
+    item = await getMercadoLivreItemById(itemId);
+  } catch (error) {
+    redirectWithAdminMessage("import_error", getMercadoLivreImportErrorMessage(error, itemId));
+  }
+
   const rating = optionalNumber(formData.get("rating"));
   const soldCount = item.sold_count;
   const affiliateUrl = optionalString(formData, "affiliate_url");
@@ -168,11 +194,12 @@ export async function importMercadoLivreProduct(formData: FormData) {
   );
 
   if (error) {
-    throw new Error(error.message);
+    redirectWithAdminMessage("import_error", `Nao consegui salvar no Supabase: ${error.message}`);
   }
 
   revalidatePath("/admin");
   revalidatePath("/");
+  redirectWithAdminMessage("import_success", `Produto importado: ${item.title}`);
 }
 export async function createManualProduct(formData: FormData) {
   await requireAdmin();
@@ -323,4 +350,7 @@ export async function updateSearchRule(formData: FormData) {
 
   revalidatePath("/admin");
 }
+
+
+
 

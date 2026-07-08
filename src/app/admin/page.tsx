@@ -110,6 +110,29 @@ async function getAdminData() {
   };
 }
 
+function getSingleParam(params: Record<string, string | string[] | undefined>, key: string) {
+  const value = params[key];
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function AdminNotice({ error, success }: { error?: string; success?: string }) {
+  if (!error && !success) {
+    return null;
+  }
+
+  return (
+    <div
+      className={`rounded-xl border p-4 text-sm font-bold ${
+        error
+          ? "border-red-200 bg-red-50 text-red-700"
+          : "border-green-200 bg-green-50 text-green-700"
+      }`}
+    >
+      {error || success}
+    </div>
+  );
+}
+
 function LoginForm({ hasError }: { hasError: boolean }) {
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-16 text-white">
@@ -342,6 +365,8 @@ export default async function AdminPage({
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = searchParams ? await searchParams : {};
+  const importError = getSingleParam(params, "import_error");
+  const importSuccess = getSingleParam(params, "import_success");
 
   if (!(await isAdminAuthenticated())) {
     return <LoginForm hasError={params.error === "invalid-password"} />;
@@ -382,6 +407,8 @@ export default async function AdminPage({
             </form>
           </div>
         </header>
+
+        <AdminNotice error={importError} success={importSuccess} />
 
         <section className="space-y-4">
           <div>
@@ -447,4 +474,7 @@ export default async function AdminPage({
     </main>
   );
 }
+
+
+
 

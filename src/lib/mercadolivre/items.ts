@@ -1,6 +1,8 @@
 import { getMercadoLivreAccessToken, refreshMercadoLivreAccessToken } from "@/lib/mercadolivre/auth";
 
-const itemIdPattern = /\b(MLB-?\d{6,})\b/i;
+const itemPathPattern = /\/(MLB-?\d{8,})(?:[/?#_-]|$)/i;
+const itemQueryPattern = /[?&](?:item_id|itemId|id)=(MLB-?\d{8,})\b/i;
+const itemFallbackPattern = /\b(MLB-?\d{9,})\b/i;
 
 interface MercadoLivreItemDetail {
   id: string;
@@ -66,6 +68,10 @@ async function fetchMercadoLivreJson<T>(url: string, accessToken?: string): Prom
   return (await response.json()) as T;
 }
 
+function normalizeMercadoLivreItemId(itemId?: string) {
+  return itemId?.replace("-", "").toUpperCase() || null;
+}
+
 export function extractMercadoLivreItemId(input: string) {
   let decodedInput = input;
 
@@ -75,9 +81,13 @@ export function extractMercadoLivreItemId(input: string) {
     decodedInput = input;
   }
 
-  const match = decodedInput.match(itemIdPattern);
+  const itemPathMatch = decodedInput.match(itemPathPattern);
+  const itemQueryMatch = decodedInput.match(itemQueryPattern);
+  const fallbackMatch = decodedInput.match(itemFallbackPattern);
 
-  return match?.[1]?.replace("-", "").toUpperCase() || null;
+  return normalizeMercadoLivreItemId(
+    itemPathMatch?.[1] || itemQueryMatch?.[1] || fallbackMatch?.[1],
+  );
 }
 
 export async function getMercadoLivreItemById(itemId: string) {
@@ -126,5 +136,6 @@ export async function getMercadoLivreItemById(itemId: string) {
     seller_reputation: seller?.seller_reputation?.level_id || null,
   };
 }
+
 
 
