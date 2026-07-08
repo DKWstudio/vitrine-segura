@@ -1,15 +1,17 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { isAdminAuthenticated } from "@/lib/admin/auth";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 import { normalizeSupabaseProduct, productColumns } from "@/lib/products";
 import type { AffiliateProduct, ClickSummary, ProductSource, SearchRule } from "@/types/product";
 import {
+  createManualProduct,
   createSearchRule,
   loginAdmin,
   logoutAdmin,
   toggleProductActive,
   toggleProductFeatured,
   updateAffiliateUrl,
+  updateManualProduct,
   updateSearchRule,
 } from "@/app/admin/actions";
 
@@ -170,6 +172,56 @@ function RuleForm({ rule }: { rule?: SearchRule }) {
   );
 }
 
+function ProductFields({ product }: { product?: AffiliateProduct }) {
+  return (
+    <>
+      {product ? <input type="hidden" name="id" value={product.id} /> : null}
+      {product ? <input type="hidden" name="current_external_id" value={product.external_id} /> : null}
+
+      <select name="source" defaultValue={product?.source || "mercadolivre"} className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-2">
+        <option value="mercadolivre">Mercado Livre</option>
+        <option value="shopee">Shopee</option>
+      </select>
+      <input name="external_id" defaultValue={product?.external_id || ""} placeholder="ID externo opcional" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-2" />
+      <input name="title" required defaultValue={product?.title || ""} placeholder="Titulo do produto" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-4" />
+      <input name="category" required defaultValue={product?.category || "Casa"} placeholder="Categoria" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-2" />
+      <input name="price" required type="number" step="0.01" min="0" defaultValue={product?.price ?? ""} placeholder="Preco" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
+      <input name="old_price" type="number" step="0.01" min="0" defaultValue={product?.old_price ?? ""} placeholder="Preco antigo" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
+      <textarea name="description" defaultValue={product?.description || ""} placeholder="Descricao curta" className="min-h-20 rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-12" />
+      <input name="image_url" defaultValue={product?.image_url || ""} placeholder="URL da imagem" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-6" />
+      <input name="product_url" required defaultValue={product?.product_url || ""} placeholder="URL oficial do produto" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-6" />
+      <input name="affiliate_url" defaultValue={product?.affiliate_url || ""} placeholder="URL afiliada oficial" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-6" />
+      <input name="currency" defaultValue={product?.currency || "BRL"} placeholder="Moeda" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
+      <input name="rating" type="number" step="0.1" min="0" max="5" defaultValue={product?.rating ?? ""} placeholder="Nota" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
+      <input name="reviews_count" type="number" min="0" defaultValue={product?.reviews_count ?? ""} placeholder="Reviews" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
+      <input name="sold_count" type="number" min="0" defaultValue={product?.sold_count ?? ""} placeholder="Vendidos" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
+      <input name="seller_name" defaultValue={product?.seller_name || ""} placeholder="Vendedor" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-2" />
+      <input name="seller_reputation" defaultValue={product?.seller_reputation || ""} placeholder="Reputacao" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
+      <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 md:col-span-1">
+        <input name="is_active" type="checkbox" defaultChecked={product?.is_active ?? true} />
+        Ativo
+      </label>
+      <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 md:col-span-1">
+        <input name="is_featured" type="checkbox" defaultChecked={product?.is_featured ?? false} />
+        Destaque
+      </label>
+    </>
+  );
+}
+
+function ManualProductForm() {
+  return (
+    <form action={createManualProduct} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-12">
+      <ProductFields />
+      <div className="md:col-span-12">
+        <button className="rounded-xl bg-blue-600 px-5 py-3 text-xs font-black uppercase text-white">
+          Cadastrar produto
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function ProductsTable({ products }: { products: AffiliateProduct[] }) {
   if (products.length === 0) {
     return <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">Nenhum produto salvo no Supabase ainda.</p>;
@@ -184,55 +236,75 @@ function ProductsTable({ products }: { products: AffiliateProduct[] }) {
             <th className="p-3">Fonte</th>
             <th className="p-3">Preco</th>
             <th className="p-3">Status</th>
-            <th className="p-3">Afiliado</th>
+            <th className="p-3">Afiliado rapido</th>
             <th className="p-3">Acoes</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
           {products.map((product) => (
-            <tr key={product.id} className="align-top">
-              <td className="p-3">
-                <div className="flex gap-3">
-                  {product.image_url ? <img src={product.image_url} alt="" className="h-14 w-14 rounded-lg object-contain" /> : null}
-                  <div>
-                    <p className="max-w-sm font-bold text-slate-900">{product.title}</p>
-                    <p className="mt-1 text-xs text-slate-500">{product.category}</p>
+            <>
+              <tr key={product.id} className="align-top">
+                <td className="p-3">
+                  <div className="flex gap-3">
+                    {product.image_url ? <img src={product.image_url} alt="" className="h-14 w-14 rounded-lg object-contain" /> : null}
+                    <div>
+                      <p className="max-w-sm font-bold text-slate-900">{product.title}</p>
+                      <p className="mt-1 text-xs text-slate-500">{product.category}</p>
+                      <p className="mt-1 text-[10px] text-slate-400">{product.external_id}</p>
+                    </div>
                   </div>
-                </div>
-              </td>
-              <td className="p-3 text-xs font-bold uppercase text-slate-500">{product.source}</td>
-              <td className="p-3 font-black">{formatCurrency(product.price)}</td>
-              <td className="p-3 text-xs font-bold">
-                <span className={product.is_active ? "text-green-700" : "text-red-700"}>{product.is_active ? "Ativo" : "Inativo"}</span>
-                <br />
-                <span className={product.is_featured ? "text-amber-600" : "text-slate-400"}>{product.is_featured ? "Destaque" : "Normal"}</span>
-              </td>
-              <td className="p-3">
-                <form action={updateAffiliateUrl} className="flex min-w-72 gap-2">
-                  <input type="hidden" name="id" value={product.id} />
-                  <input name="affiliate_url" defaultValue={product.affiliate_url || ""} placeholder="URL afiliada oficial" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs" />
-                  <button className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-black uppercase text-white">Salvar</button>
-                </form>
-              </td>
-              <td className="p-3">
-                <div className="flex flex-col gap-2">
-                  <form action={toggleProductActive}>
+                </td>
+                <td className="p-3 text-xs font-bold uppercase text-slate-500">{product.source}</td>
+                <td className="p-3 font-black">{formatCurrency(product.price)}</td>
+                <td className="p-3 text-xs font-bold">
+                  <span className={product.is_active ? "text-green-700" : "text-red-700"}>{product.is_active ? "Ativo" : "Inativo"}</span>
+                  <br />
+                  <span className={product.is_featured ? "text-amber-600" : "text-slate-400"}>{product.is_featured ? "Destaque" : "Normal"}</span>
+                </td>
+                <td className="p-3">
+                  <form action={updateAffiliateUrl} className="flex min-w-72 gap-2">
                     <input type="hidden" name="id" value={product.id} />
-                    <input type="hidden" name="is_active" value={String(product.is_active)} />
-                    <button className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-black uppercase text-slate-700">
-                      {product.is_active ? "Desativar" : "Ativar"}
-                    </button>
+                    <input name="affiliate_url" defaultValue={product.affiliate_url || ""} placeholder="URL afiliada oficial" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs" />
+                    <button className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-black uppercase text-white">Salvar</button>
                   </form>
-                  <form action={toggleProductFeatured}>
-                    <input type="hidden" name="id" value={product.id} />
-                    <input type="hidden" name="is_featured" value={String(product.is_featured)} />
-                    <button className="w-full rounded-lg border border-amber-200 px-3 py-2 text-xs font-black uppercase text-amber-700">
-                      {product.is_featured ? "Remover destaque" : "Destacar"}
-                    </button>
-                  </form>
-                </div>
-              </td>
-            </tr>
+                </td>
+                <td className="p-3">
+                  <div className="flex flex-col gap-2">
+                    <form action={toggleProductActive}>
+                      <input type="hidden" name="id" value={product.id} />
+                      <input type="hidden" name="is_active" value={String(product.is_active)} />
+                      <button className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-black uppercase text-slate-700">
+                        {product.is_active ? "Desativar" : "Ativar"}
+                      </button>
+                    </form>
+                    <form action={toggleProductFeatured}>
+                      <input type="hidden" name="id" value={product.id} />
+                      <input type="hidden" name="is_featured" value={String(product.is_featured)} />
+                      <button className="w-full rounded-lg border border-amber-200 px-3 py-2 text-xs font-black uppercase text-amber-700">
+                        {product.is_featured ? "Remover destaque" : "Destacar"}
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              <tr key={`${product.id}-edit`}>
+                <td colSpan={6} className="bg-slate-50 p-3">
+                  <details>
+                    <summary className="cursor-pointer text-xs font-black uppercase tracking-widest text-slate-500">
+                      Editar detalhes do produto
+                    </summary>
+                    <form action={updateManualProduct} className="mt-3 grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-12">
+                      <ProductFields product={product} />
+                      <div className="md:col-span-12">
+                        <button className="rounded-xl bg-slate-950 px-5 py-3 text-xs font-black uppercase text-white">
+                          Salvar produto
+                        </button>
+                      </div>
+                    </form>
+                  </details>
+                </td>
+              </tr>
+            </>
           ))}
         </tbody>
       </table>
@@ -289,8 +361,16 @@ export default async function AdminPage({
 
         <section className="space-y-4">
           <div>
+            <h2 className="text-xl font-black uppercase">Cadastrar produto manual</h2>
+            <p className="text-sm text-slate-500">Use links oficiais e preencha affiliate_url apenas com link afiliado valido.</p>
+          </div>
+          <ManualProductForm />
+        </section>
+
+        <section className="space-y-4">
+          <div>
             <h2 className="text-xl font-black uppercase">Regras de busca</h2>
-            <p className="text-sm text-slate-500">Essas regras serao usadas pelo cron nos proximos prompts.</p>
+            <p className="text-sm text-slate-500">Deixe regras Mercado Livre inativas enquanto a API de busca estiver bloqueada.</p>
           </div>
           <RuleForm />
           <div className="space-y-3">
@@ -308,7 +388,7 @@ export default async function AdminPage({
         <section className="space-y-4">
           <div>
             <h2 className="text-xl font-black uppercase">Produtos encontrados</h2>
-            <p className="text-sm text-slate-500">Edite link afiliado, status e destaque.</p>
+            <p className="text-sm text-slate-500">Edite dados, link afiliado, status e destaque.</p>
           </div>
           <ProductsTable products={data.products} />
         </section>
@@ -316,7 +396,7 @@ export default async function AdminPage({
         <section className="space-y-4">
           <div>
             <h2 className="text-xl font-black uppercase">Mais clicados</h2>
-            <p className="text-sm text-slate-500">Aparecera depois que a rota de cliques estiver ativa.</p>
+            <p className="text-sm text-slate-500">Ranking gerado pela rota /go/[id].</p>
           </div>
           <div className="rounded-xl border border-slate-200 bg-white p-4">
             {data.clickSummaries.length === 0 ? (

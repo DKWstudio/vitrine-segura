@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -9,6 +9,7 @@ import {
   isAdminAuthenticated,
   isValidAdminPassword,
 } from "@/lib/admin/auth";
+import { calculateProductScore } from "@/lib/adapters/normalization";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 import type { ProductSource } from "@/types/product";
 
@@ -21,6 +22,16 @@ function optionalNumber(value: FormDataEntryValue | null) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function optionalInteger(value: FormDataEntryValue | null) {
+  const parsed = optionalNumber(value);
+  return parsed === null ? null : Math.trunc(parsed);
+}
+
+function optionalString(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
+}
+
 function requiredString(formData: FormData, key: string) {
   const value = formData.get(key);
 
@@ -29,6 +40,56 @@ function requiredString(formData: FormData, key: string) {
   }
 
   return value.trim();
+}
+
+function requiredNumber(formData: FormData, key: string) {
+  const value = optionalNumber(formData.get(key));
+
+  if (value === null) {
+    throw new Error(`Missing required numeric field: ${key}`);
+  }
+
+  return value;
+}
+
+function normalizeSource(value: string): ProductSource {
+  return value === "shopee" ? "shopee" : "mercadolivre";
+}
+
+function getProductPayload(formData: FormData, fallbackExternalId?: string) {
+  const source = normalizeSource(requiredString(formData, "source"));
+  const price = requiredNumber(formData, "price");
+  const rating = optionalNumber(formData.get("rating"));
+  const soldCount = optionalInteger(formData.get("sold_count"));
+  const sellerReputation = optionalString(formData, "seller_reputation");
+
+  return {
+    source,
+    external_id: optionalString(formData, "external_id") || fallbackExternalId || `manual-${Date.now()}`,
+    title: requiredString(formData, "title"),
+    description: optionalString(formData, "description"),
+    category: requiredString(formData, "category"),
+    price,
+    old_price: optionalNumber(formData.get("old_price")),
+    currency: optionalString(formData, "currency") || "BRL",
+    image_url: optionalString(formData, "image_url"),
+    product_url: requiredString(formData, "product_url"),
+    affiliate_url: optionalString(formData, "affiliate_url"),
+    rating,
+    reviews_count: optionalInteger(formData.get("reviews_count")),
+    sold_count: soldCount,
+    seller_name: optionalString(formData, "seller_name"),
+    seller_reputation: sellerReputation,
+    is_active: formData.get("is_active") === "on",
+    is_featured: formData.get("is_featured") === "on",
+    score: calculateProductScore({
+      price,
+      rating,
+      sold_count: soldCount,
+      seller_reputation: sellerReputation,
+    }),
+    last_checked_at: new Date().toISOString(),
+  };
 }
 
 async function requireAdmin() {
@@ -60,6 +121,40 @@ export async function logoutAdmin() {
   const cookieStore = await cookies();
   cookieStore.delete(adminCookieName);
   redirect("/admin");
+}
+
+export async function createManualProduct(formData: FormData) {
+  await requireAdmin();
+
+  const supabase = createServiceSupabaseClient();
+  const payload = getProductPayload(formData);
+
+  const { error } = await supabase.from("products").insert(payload);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+}
+
+export async function updateManualProduct(formData: FormData) {
+  await requireAdmin();
+
+  const id = requiredString(formData, "id");
+  const currentExternalId = requiredString(formData, "current_external_id");
+  const supabase = createServiceSupabaseClient();
+  const payload = getProductPayload(formData, currentExternalId);
+
+  const { error } = await supabase.from("products").update(payload).eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
 }
 
 export async function toggleProductActive(formData: FormData) {
@@ -103,8 +198,7 @@ export async function updateAffiliateUrl(formData: FormData) {
   await requireAdmin();
 
   const id = requiredString(formData, "id");
-  const affiliateUrl = formData.get("affiliate_url");
-  const normalizedUrl = typeof affiliateUrl === "string" && affiliateUrl.trim() !== "" ? affiliateUrl.trim() : null;
+  const normalizedUrl = optionalString(formData, "affiliate_url");
   const supabase = createServiceSupabaseClient();
 
   const { error } = await supabase
