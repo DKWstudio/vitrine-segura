@@ -1,4 +1,4 @@
-import { createHmac } from "crypto";
+﻿import { createHmac } from "crypto";
 import { NextRequest } from "next/server";
 
 const authorizationBaseUrl = "https://auth.mercadolivre.com.br/authorization";
@@ -13,12 +13,38 @@ export interface MercadoLivreTokenResponse {
   refresh_token?: string;
 }
 
+export interface MercadoLivreAuthStatus {
+  hasClientId: boolean;
+  hasClientSecret: boolean;
+  hasAccessToken: boolean;
+  hasRefreshToken: boolean;
+}
+
 function getClientId() {
   return process.env.MERCADO_LIVRE_CLIENT_ID || "";
 }
 
 function getClientSecret() {
   return process.env.MERCADO_LIVRE_CLIENT_SECRET || "";
+}
+
+export function getMercadoLivreAccessToken() {
+  const token = process.env.MERCADO_LIVRE_ACCESS_TOKEN;
+  return token && token !== "pending" ? token : "";
+}
+
+export function getMercadoLivreRefreshToken() {
+  const token = process.env.MERCADO_LIVRE_REFRESH_TOKEN;
+  return token && token !== "pending" ? token : "";
+}
+
+export function getMercadoLivreAuthStatus(): MercadoLivreAuthStatus {
+  return {
+    hasClientId: Boolean(getClientId()),
+    hasClientSecret: Boolean(getClientSecret()),
+    hasAccessToken: Boolean(getMercadoLivreAccessToken()),
+    hasRefreshToken: Boolean(getMercadoLivreRefreshToken()),
+  };
 }
 
 function getStateSecret() {
@@ -94,4 +120,44 @@ export async function exchangeMercadoLivreCodeForToken({
   }
 
   return (await response.json()) as MercadoLivreTokenResponse;
+}
+
+export async function refreshMercadoLivreAccessToken(): Promise<MercadoLivreTokenResponse | null> {
+  const clientId = getClientId();
+  const clientSecret = getClientSecret();
+  const refreshToken = getMercadoLivreRefreshToken();
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    return null;
+  }
+
+  const response = await fetch(tokenUrl, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+    }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Mercado Livre token refresh failed: ${response.status} ${body}`);
+  }
+
+  const token = (await response.json()) as MercadoLivreTokenResponse;
+
+  if (token.refresh_token && token.refresh_token !== refreshToken) {
+    console.warn(
+      "Mercado Livre returned a new refresh token. Update MERCADO_LIVRE_REFRESH_TOKEN in Vercel and .env.local.",
+    );
+  }
+
+  return token;
 }

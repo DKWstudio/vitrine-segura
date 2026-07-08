@@ -1,4 +1,9 @@
-import { normalizeMarketplaceProduct } from "@/lib/adapters/normalization";
+﻿import { normalizeMarketplaceProduct } from "@/lib/adapters/normalization";
+import {
+  getMercadoLivreAccessToken,
+  getMercadoLivreRefreshToken,
+  refreshMercadoLivreAccessToken,
+} from "@/lib/mercadolivre/auth";
 import type { MarketplaceProduct, ProductSearchRule } from "@/lib/adapters/types";
 
 const mercadoLivreSearchUrl = "https://api.mercadolibre.com/sites/MLB/search";
@@ -88,6 +93,22 @@ function normalizeMercadoLivreItem(
   });
 }
 
+function createHeaders(accessToken?: string): HeadersInit {
+  return {
+    Accept: "application/json",
+    "Accept-Language": "pt-BR,pt;q=0.9",
+    "User-Agent": "VitrineSegura/1.0 (+https://vitrine-segura.vercel.app)",
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  };
+}
+
+async function requestMercadoLivreSearch(requestUrl: string, accessToken?: string) {
+  return fetch(requestUrl, {
+    headers: createHeaders(accessToken),
+    cache: "no-store",
+  });
+}
+
 export async function searchMercadoLivreProducts(
   rule: ProductSearchRule,
 ): Promise<MarketplaceProduct[]> {
@@ -96,23 +117,19 @@ export async function searchMercadoLivreProducts(
     limit: String(Math.min(Math.max(rule.max_results || 20, 1), 50)),
   });
 
-  const accessToken = process.env.MERCADO_LIVRE_ACCESS_TOKEN;
-  const headers: HeadersInit = {
-    Accept: "application/json",
-    "Accept-Language": "pt-BR,pt;q=0.9",
-    "User-Agent": "VitrineSegura/1.0 (+https://vitrine-segura.vercel.app)",
-  };
+  const requestUrl = `${mercadoLivreSearchUrl}?${params.toString()}`;
+  const accessToken = getMercadoLivreAccessToken();
+  let response = await requestMercadoLivreSearch(requestUrl, accessToken);
+  let refreshedToken: string | null = null;
 
-  if (accessToken) {
-    headers.Authorization = `Bearer ${accessToken}`;
+  if ((response.status === 401 || response.status === 403) && getMercadoLivreRefreshToken()) {
+    const refreshed = await refreshMercadoLivreAccessToken();
+    refreshedToken = refreshed?.access_token || null;
+
+    if (refreshedToken) {
+      response = await requestMercadoLivreSearch(requestUrl, refreshedToken);
+    }
   }
-
-  const response = await fetch(`${mercadoLivreSearchUrl}?${params.toString()}`, {
-    headers: {
-      ...headers,
-    },
-    cache: "no-store",
-  });
 
   if (!response.ok) {
     const errorBody = await response.text();
@@ -120,9 +137,13 @@ export async function searchMercadoLivreProducts(
       response.status === 403 && !accessToken
         ? " The public search endpoint was rejected without an access token. Configure MERCADO_LIVRE_ACCESS_TOKEN or test from the deployed Vercel environment."
         : "";
+    const refreshHint =
+      refreshedToken && response.status === 403
+        ? " A refreshed access token was also rejected. Check app permissions or Mercado Livre API access for this endpoint."
+        : "";
 
     throw new Error(
-      `Mercado Livre search failed with status ${response.status}: ${errorBody.slice(0, 300)}${authHint}`,
+      `Mercado Livre search failed with status ${response.status}: ${errorBody.slice(0, 300)}${authHint}${refreshHint}`,
     );
   }
 
