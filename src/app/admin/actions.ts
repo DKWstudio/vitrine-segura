@@ -65,7 +65,7 @@ function getMercadoLivreImportErrorMessage(error: unknown, itemId: string) {
   }
 
   if (message.includes(" 401 ") || message.includes(" 403 ")) {
-    return "O Mercado Livre recusou a consulta desse item. Refaca a conexao OAuth e tente novamente.";
+    return `O Mercado Livre bloqueou a consulta automatica do item ${itemId} pela API, mesmo tentando modo publico, token e endpoint em lote. Cadastre esse produto manualmente no painel e use seu link afiliado no campo affiliate_url.`;
   }
 
   return `Nao consegui importar esse produto: ${message}`;
@@ -352,6 +352,7 @@ export async function updateSearchRule(formData: FormData) {
 
   revalidatePath("/admin");
 }
+
 
 
 
