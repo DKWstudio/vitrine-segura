@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PublicProductCollection, {
   filterProductsBySource,
   getSourceFromParam,
 } from "@/components/ui/PublicProductCollection";
 import { getActiveProducts } from "@/lib/products";
-import { absoluteUrl, slugifyCategory, truncateDescription } from "@/lib/seo";
+import { absoluteUrl, defaultOgImage, defaultOgImageAlt, siteName, slugifyCategory, truncateDescription } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -47,8 +47,15 @@ export async function generateMetadata({
       title,
       description,
       url: absoluteUrl(`/categoria/${slug}`),
-      siteName: "Vitrine Segura",
+      siteName,
       type: "website",
+      images: [{ url: defaultOgImage, width: 1200, height: 630, alt: defaultOgImageAlt }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [defaultOgImage],
     },
   };
 }
@@ -83,3 +90,5 @@ export default async function CategoryPage({
     />
   );
 }
+
+

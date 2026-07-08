@@ -6,7 +6,7 @@ import PriceTag from "@/components/ui/PriceTag";
 import ProductGrid from "@/components/ui/ProductGrid";
 import SourceBadge from "@/components/ui/SourceBadge";
 import { getActiveProductById, getRelatedProducts } from "@/lib/products";
-import { absoluteUrl, truncateDescription } from "@/lib/seo";
+import { absoluteUrl, defaultOgImage, siteName, truncateDescription } from "@/lib/seo";
 import type { AffiliateProduct } from "@/types/product";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +32,7 @@ export async function generateMetadata({
       currency: "BRL",
     })}. Link oficial via Vitrine Segura.`,
   );
-  const image = product.image_url || undefined;
+  const image = product.image_url || defaultOgImage;
 
   return {
     title,
@@ -44,9 +44,15 @@ export async function generateMetadata({
       title,
       description,
       url: absoluteUrl(`/produto/${product.id}`),
-      siteName: "Vitrine Segura",
+      siteName,
       type: "website",
-      images: image ? [{ url: image, alt: product.title }] : undefined,
+      images: [{ url: image, alt: product.title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [image],
     },
   };
 }
@@ -242,6 +248,8 @@ export default async function ProductPage({
     </main>
   );
 }
+
+
 
 
 

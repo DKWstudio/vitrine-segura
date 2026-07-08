@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import PublicProductCollection, {
   filterProductsBySource,
   getSourceFromParam,
 } from "@/components/ui/PublicProductCollection";
 import { getActiveProducts } from "@/lib/products";
-import { absoluteUrl } from "@/lib/seo";
+import { absoluteUrl, defaultOgImage, defaultOgImageAlt, siteName } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +18,15 @@ export const metadata: Metadata = {
     title: "Ofertas ate R$ 50 | Vitrine Segura",
     description: "Produtos baratos selecionados no Mercado Livre e Shopee.",
     url: absoluteUrl("/ofertas/ate-50"),
-    siteName: "Vitrine Segura",
+    siteName,
     type: "website",
+    images: [{ url: defaultOgImage, width: 1200, height: 630, alt: defaultOgImageAlt }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Ofertas ate R$ 50 | Vitrine Segura",
+    description: "Produtos baratos selecionados no Mercado Livre e Shopee.",
+    images: [defaultOgImage],
   },
 };
 
@@ -47,3 +54,5 @@ export default async function OffersUpTo50Page({
     />
   );
 }
+
+
