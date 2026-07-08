@@ -7,6 +7,7 @@ import ProductGrid from "@/components/ui/ProductGrid";
 import SourceBadge from "@/components/ui/SourceBadge";
 import { getActiveProductById, getRelatedProducts } from "@/lib/products";
 import { absoluteUrl, truncateDescription } from "@/lib/seo";
+import type { AffiliateProduct } from "@/types/product";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,50 @@ function formatCount(value: number | null) {
   return value.toLocaleString("pt-BR");
 }
 
+function buildProductJsonLd(product: AffiliateProduct, sourceLabel: string) {
+  const ratingCount = product.reviews_count ?? product.sold_count;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.title,
+    description:
+      product.description ||
+      `Oferta em ${product.category} selecionada pela Vitrine Segura.`,
+    image: product.image_url ? [product.image_url] : undefined,
+    category: product.category,
+    sku: product.external_id,
+    brand: product.seller_name
+      ? {
+          "@type": "Brand",
+          name: product.seller_name,
+        }
+      : undefined,
+    aggregateRating:
+      product.rating && ratingCount
+        ? {
+            "@type": "AggregateRating",
+            ratingValue: product.rating.toFixed(1),
+            reviewCount: ratingCount,
+            bestRating: "5",
+            worstRating: "1",
+          }
+        : undefined,
+    offers: {
+      "@type": "Offer",
+      url: absoluteUrl(`/go/${product.id}`),
+      priceCurrency: product.currency || "BRL",
+      price: product.price.toFixed(2),
+      availability: "https://schema.org/InStock",
+      itemCondition: "https://schema.org/NewCondition",
+      seller: {
+        "@type": "Organization",
+        name: product.seller_name || sourceLabel,
+      },
+    },
+  };
+}
+
 export default async function ProductPage({
   params,
 }: {
@@ -71,9 +116,14 @@ export default async function ProductPage({
 
   const relatedProducts = await getRelatedProducts(product, 4);
   const sourceLabel = product.source === "shopee" ? "Shopee" : "Mercado Livre";
+  const productJsonLd = buildProductJsonLd(product, sourceLabel);
 
   return (
     <main className="min-h-screen bg-[#F8FAFC] text-slate-950">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
       <header className="bg-[#0F172A] px-4 py-5 text-white">
         <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-4">
           <Link href="/" className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#FFE600]">
@@ -192,5 +242,9 @@ export default async function ProductPage({
     </main>
   );
 }
+
+
+
+
 
 
