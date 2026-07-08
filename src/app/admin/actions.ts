@@ -10,7 +10,7 @@ import {
   isValidAdminPassword,
 } from "@/lib/admin/auth";
 import { calculateProductScore } from "@/lib/adapters/normalization";
-import { extractMercadoLivreItemId, getMercadoLivreItemById } from "@/lib/mercadolivre/items";
+import { getMercadoLivreItemById, resolveMercadoLivreProductUrl } from "@/lib/mercadolivre/items";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 import type { ProductSource } from "@/types/product";
 
@@ -147,7 +147,8 @@ export async function importMercadoLivreProduct(formData: FormData) {
 
   const productUrl = requiredString(formData, "product_url");
   const category = requiredString(formData, "category");
-  const itemId = extractMercadoLivreItemId(productUrl);
+  const resolvedProduct = await resolveMercadoLivreProductUrl(productUrl);
+  const itemId = resolvedProduct.itemId;
 
   if (!itemId) {
     redirectWithAdminMessage(
@@ -174,6 +175,7 @@ export async function importMercadoLivreProduct(formData: FormData) {
     {
       ...item,
       category,
+      product_url: resolvedProduct.url || item.product_url,
       affiliate_url: affiliateUrl,
       rating,
       reviews_count: optionalInteger(formData.get("reviews_count")),
@@ -350,6 +352,9 @@ export async function updateSearchRule(formData: FormData) {
 
   revalidatePath("/admin");
 }
+
+
+
 
 
 

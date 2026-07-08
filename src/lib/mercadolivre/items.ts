@@ -1,8 +1,8 @@
 import { getMercadoLivreAccessToken, refreshMercadoLivreAccessToken } from "@/lib/mercadolivre/auth";
 
-const itemFilterPattern = /(?:item_id|itemId)[:=](MLB-?\d{8,})\b/i;
-const itemQueryPattern = /[?&](?:item_id|itemId|id)=(MLB-?\d{8,})\b/i;
-const itemPathPattern = /\/(?!p\/)(MLB-?\d{8,})(?:[/?#_-]|$)/i;
+const itemFilterPattern = /(?:item_id|itemId|wid)[:=](MLB-?\d{8,})\b/i;
+const itemQueryPattern = /[?&](?:item_id|itemId|id|wid)=(MLB-?\d{8,})\b/i;
+const itemPathPattern = /\/(?!p\/|up\/)(MLB-?\d{8,})(?:[/?#_-]|$)/i;
 const itemFallbackPattern = /\b(MLB-?\d{9,})\b/i;
 
 interface MercadoLivreItemDetail {
@@ -43,22 +43,27 @@ function createHeaders(accessToken?: string): HeadersInit {
   };
 }
 
-async function fetchMercadoLivreJson<T>(url: string, accessToken?: string): Promise<T> {
-  let response = await fetch(url, {
+async function requestMercadoLivre(url: string, accessToken?: string) {
+  return fetch(url, {
     headers: createHeaders(accessToken),
     cache: "no-store",
   });
+}
+
+async function fetchMercadoLivreJson<T>(url: string, accessToken?: string): Promise<T> {
+  let response = await requestMercadoLivre(url, accessToken);
 
   if ((response.status === 401 || response.status === 403) && process.env.MERCADO_LIVRE_REFRESH_TOKEN) {
     const refreshed = await refreshMercadoLivreAccessToken();
     const refreshedToken = refreshed?.access_token;
 
     if (refreshedToken) {
-      response = await fetch(url, {
-        headers: createHeaders(refreshedToken),
-        cache: "no-store",
-      });
+      response = await requestMercadoLivre(url, refreshedToken);
     }
+  }
+
+  if ((response.status === 401 || response.status === 403) && accessToken) {
+    response = await requestMercadoLivre(url);
   }
 
   if (!response.ok) {
@@ -73,15 +78,28 @@ function normalizeMercadoLivreItemId(itemId?: string) {
   return itemId?.replace("-", "").toUpperCase() || null;
 }
 
-export function extractMercadoLivreItemId(input: string) {
+function decodeInput(input: string) {
   let decodedInput = input;
 
-  try {
-    decodedInput = decodeURIComponent(input);
-  } catch {
-    decodedInput = input;
+  for (let index = 0; index < 2; index += 1) {
+    try {
+      const nextValue = decodeURIComponent(decodedInput);
+
+      if (nextValue === decodedInput) {
+        break;
+      }
+
+      decodedInput = nextValue;
+    } catch {
+      break;
+    }
   }
 
+  return decodedInput;
+}
+
+export function extractMercadoLivreItemId(input: string) {
+  const decodedInput = decodeInput(input);
   const itemFilterMatch = decodedInput.match(itemFilterPattern);
   const itemQueryMatch = decodedInput.match(itemQueryPattern);
   const itemPathMatch = decodedInput.match(itemPathPattern);
@@ -90,6 +108,47 @@ export function extractMercadoLivreItemId(input: string) {
   return normalizeMercadoLivreItemId(
     itemFilterMatch?.[1] || itemQueryMatch?.[1] || itemPathMatch?.[1] || fallbackMatch?.[1],
   );
+}
+
+export async function resolveMercadoLivreProductUrl(input: string) {
+  const directItemId = extractMercadoLivreItemId(input);
+
+  if (directItemId) {
+    return { url: input, itemId: directItemId };
+  }
+
+  let parsedUrl: URL;
+
+  try {
+    parsedUrl = new URL(input);
+  } catch {
+    return { url: input, itemId: null };
+  }
+
+  const host = parsedUrl.hostname.replace(/^www\./, "").toLowerCase();
+
+  if (host !== "meli.la" && host !== "mercadolivre.com" && host !== "mercadolivre.com.br") {
+    return { url: input, itemId: null };
+  }
+
+  try {
+    const response = await fetch(input, {
+      method: "GET",
+      redirect: "follow",
+      cache: "no-store",
+      headers: {
+        "User-Agent": "VitrineSegura/1.0 (+https://vitrine-segura.vercel.app)",
+      },
+    });
+    const resolvedUrl = response.url || input;
+
+    return { url: resolvedUrl, itemId: extractMercadoLivreItemId(resolvedUrl) };
+  } catch (error) {
+    console.warn(
+      `Could not resolve Mercado Livre URL ${input}: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
+    return { url: input, itemId: null };
+  }
 }
 
 export async function getMercadoLivreItemById(itemId: string) {
@@ -138,8 +197,3 @@ export async function getMercadoLivreItemById(itemId: string) {
     seller_reputation: seller?.seller_reputation?.level_id || null,
   };
 }
-
-
-
-
-
