@@ -53,7 +53,7 @@ function requiredNumber(formData: FormData, key: string) {
   return value;
 }
 
-function redirectWithAdminMessage(key: "import_error" | "import_success", message: string): never {
+function redirectWithAdminMessage(key: "import_error" | "import_success" | "notice_error" | "notice_success", message: string): never {
   redirect(`/admin?${key}=${encodeURIComponent(message)}`);
 }
 
@@ -201,7 +201,7 @@ export async function importMercadoLivreProduct(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/");
-  redirectWithAdminMessage("import_success", `Produto importado: ${item.title}`);
+  redirectWithAdminMessage("notice_success", "Produto cadastrado com sucesso.");
 }
 export async function createManualProduct(formData: FormData) {
   await requireAdmin();
@@ -217,6 +217,7 @@ export async function createManualProduct(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/");
+  redirectWithAdminMessage("notice_success", "Produto cadastrado com sucesso.");
 }
 
 export async function updateManualProduct(formData: FormData) {
@@ -235,6 +236,7 @@ export async function updateManualProduct(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/");
+  redirectWithAdminMessage("notice_success", "Produto atualizado.");
 }
 
 export async function deleteProduct(formData: FormData) {
@@ -256,6 +258,7 @@ export async function deleteProduct(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/");
+  redirectWithAdminMessage("notice_success", "Produto excluido.");
 }
 
 export async function toggleProductActive(formData: FormData) {
