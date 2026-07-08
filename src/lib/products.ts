@@ -88,29 +88,39 @@ function fromLocalProduct(product: Product): AffiliateProduct {
 }
 
 export async function getActiveProducts(): Promise<AffiliateProduct[]> {
+  const fallbackProducts = localProducts.map(fromLocalProduct);
   const supabase = createPublicSupabaseClient();
 
   if (!supabase) {
-    return localProducts.map(fromLocalProduct);
+    return fallbackProducts;
   }
 
-  const { data, error } = await supabase
-    .from("products")
-    .select(productColumns)
-    .eq("is_active", true)
-    .order("is_featured", { ascending: false })
-    .order("score", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(96);
+  try {
+    const { data, error } = await supabase
+      .from("products")
+      .select(productColumns)
+      .eq("is_active", true)
+      .order("is_featured", { ascending: false })
+      .order("score", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(96);
 
-  if (error) {
-    console.warn("Could not load Supabase products. Using local fallback.", error.message);
-    return localProducts.map(fromLocalProduct);
+    if (error) {
+      console.warn("Could not load Supabase products. Using local fallback.", error.message);
+      return fallbackProducts;
+    }
+
+    if (!data || data.length === 0) {
+      return fallbackProducts;
+    }
+
+    return data.map((product) => normalizeSupabaseProduct(product));
+  } catch (error) {
+    console.warn(
+      "Unexpected product loading error. Using local fallback.",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return fallbackProducts;
   }
-
-  if (!data || data.length === 0) {
-    return localProducts.map(fromLocalProduct);
-  }
-
-  return data.map((product) => normalizeSupabaseProduct(product));
 }
+

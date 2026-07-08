@@ -8,10 +8,18 @@ export function createPublicSupabaseClient() {
     return null;
   }
 
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
+  try {
+    return createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
+  } catch (error) {
+    console.warn(
+      "Invalid Supabase public credentials. Using local fallback.",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return null;
+  }
 }
