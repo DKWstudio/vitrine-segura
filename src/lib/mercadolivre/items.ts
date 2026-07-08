@@ -1,7 +1,8 @@
 import { getMercadoLivreAccessToken, refreshMercadoLivreAccessToken } from "@/lib/mercadolivre/auth";
 
-const itemPathPattern = /\/(MLB-?\d{8,})(?:[/?#_-]|$)/i;
+const itemFilterPattern = /(?:item_id|itemId)[:=](MLB-?\d{8,})\b/i;
 const itemQueryPattern = /[?&](?:item_id|itemId|id)=(MLB-?\d{8,})\b/i;
+const itemPathPattern = /\/(?!p\/)(MLB-?\d{8,})(?:[/?#_-]|$)/i;
 const itemFallbackPattern = /\b(MLB-?\d{9,})\b/i;
 
 interface MercadoLivreItemDetail {
@@ -81,12 +82,13 @@ export function extractMercadoLivreItemId(input: string) {
     decodedInput = input;
   }
 
-  const itemPathMatch = decodedInput.match(itemPathPattern);
+  const itemFilterMatch = decodedInput.match(itemFilterPattern);
   const itemQueryMatch = decodedInput.match(itemQueryPattern);
+  const itemPathMatch = decodedInput.match(itemPathPattern);
   const fallbackMatch = decodedInput.match(itemFallbackPattern);
 
   return normalizeMercadoLivreItemId(
-    itemPathMatch?.[1] || itemQueryMatch?.[1] || fallbackMatch?.[1],
+    itemFilterMatch?.[1] || itemQueryMatch?.[1] || itemPathMatch?.[1] || fallbackMatch?.[1],
   );
 }
 
@@ -136,6 +138,8 @@ export async function getMercadoLivreItemById(itemId: string) {
     seller_reputation: seller?.seller_reputation?.level_id || null,
   };
 }
+
+
 
 
 
