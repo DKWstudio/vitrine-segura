@@ -39,6 +39,11 @@ function getSourceHref(basePath: string, source: "all" | ProductSource) {
   return source === "all" ? basePath : `${basePath}?source=${source}`;
 }
 
+function getCategoryHref(category: string, source: "all" | ProductSource) {
+  const path = `/categoria/${slugifyCategory(category)}`;
+  return source === "all" ? path : `${path}?source=${source}`;
+}
+
 function TrustCards() {
   const items = [
     { icon: Star, text: "4.5+ Estrelas" },
@@ -75,7 +80,10 @@ export default function PublicProductCollection({
   selectedSource,
   showSourceFilter = true,
 }: PublicProductCollectionProps) {
-  const categories = Array.from(new Set(allProducts.map((product) => product.category))).sort((a, b) =>
+  const categoryProducts = selectedSource === "all"
+    ? allProducts
+    : allProducts.filter((product) => product.source === selectedSource);
+  const categories = Array.from(new Set(categoryProducts.map((product) => product.category))).sort((a, b) =>
     a.localeCompare(b, "pt-BR"),
   );
 
@@ -106,31 +114,36 @@ export default function PublicProductCollection({
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ofertas:</span>
             <Link
-              href="/ofertas/ate-50"
+              href={selectedSource === "all" ? "/ofertas/ate-50" : `/ofertas/ate-50?source=${selectedSource}`}
+              scroll={false}
               className="rounded-full border border-green-200 bg-green-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-green-700"
             >
               Ate R$ 50
             </Link>
             <Link
-              href="/ofertas/ate-100"
+              href={selectedSource === "all" ? "/ofertas/ate-100" : `/ofertas/ate-100?source=${selectedSource}`}
+              scroll={false}
               className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-blue-700"
             >
               Ate R$ 100
             </Link>
             <Link
               href="/mercadolivre"
+              scroll={false}
               className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-blue-700"
             >
               Mercado Livre
             </Link>
             <Link
               href="/shopee"
+              scroll={false}
               className="rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-orange-700"
             >
               Shopee
             </Link>
             <Link
               href="/"
+              scroll={false}
               className="rounded-full border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-wider text-slate-700 hover:border-[#FFE600]"
             >
               Home
@@ -139,11 +152,12 @@ export default function PublicProductCollection({
 
           {showSourceFilter ? (
             <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Fonte:</span>
-            {sourceOptions.map((source) => (
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Fonte:</span>
+              {sourceOptions.map((source) => (
               <Link
                 key={source.id}
                 href={getSourceHref(basePath, source.id)}
+                scroll={false}
                 className={`rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-wider transition-all ${
                   selectedSource === source.id
                     ? "border-blue-600 bg-blue-600 text-white"
@@ -152,7 +166,7 @@ export default function PublicProductCollection({
               >
                 {source.label}
               </Link>
-            ))}
+              ))}
             </div>
           ) : null}
 
@@ -160,7 +174,8 @@ export default function PublicProductCollection({
             {categories.map((category) => (
               <Link
                 key={category}
-                href={`/categoria/${slugifyCategory(category)}`}
+                href={getCategoryHref(category, selectedSource)}
+                scroll={false}
                 className="flex-shrink-0 rounded-xl border-2 border-[#0F172A] bg-[#0F172A] px-6 py-3 text-[11px] font-black uppercase tracking-wider text-white transition-all hover:border-[#FFE600] hover:bg-[#FFE600] hover:text-[#0F172A]"
               >
                 {category}
@@ -176,6 +191,8 @@ export default function PublicProductCollection({
     </div>
   );
 }
+
+
 
 
 

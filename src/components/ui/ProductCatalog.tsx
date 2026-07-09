@@ -80,12 +80,14 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
             </span>
             <Link
               href="/mercadolivre"
+              scroll={false}
               className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-blue-700"
             >
               Mercado Livre
             </Link>
             <Link
               href="/shopee"
+              scroll={false}
               className="rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-orange-700"
             >
               Shopee
@@ -98,12 +100,14 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
             </span>
             <Link
               href="/ofertas/ate-50"
+              scroll={false}
               className="rounded-full border border-green-200 bg-green-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-green-700"
             >
               Ate R$ 50
             </Link>
             <Link
               href="/ofertas/ate-100"
+              scroll={false}
               className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-blue-700"
             >
               Ate R$ 100
@@ -118,5 +122,6 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
     </>
   );
 }
+
 
 
