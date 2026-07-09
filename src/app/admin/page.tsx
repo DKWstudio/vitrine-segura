@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+﻿import { Fragment } from "react";
 import { redirect } from "next/navigation";
 import AdminNotice from "@/components/admin/AdminNotice";
 import CopyProductLinkButton from "@/components/admin/CopyProductLinkButton";
@@ -127,6 +127,7 @@ async function getAdminData() {
       mercadoLivreProducts: products.filter((product) => product.source === "mercadolivre").length,
       totalClicks: clicksResult.data?.length || 0,
       clicksLast7Days,
+      withoutAffiliate: products.filter((product) => !product.affiliate_url).length,
     },
     clickSummaries: Array.from(clickMap.values())
       .sort((a, b) => b.clicks - a.clicks)
@@ -304,15 +305,23 @@ function AdminStats({ stats }: { stats: Awaited<ReturnType<typeof getAdminData>>
     { label: "Mercado Livre", value: stats.mercadoLivreProducts },
     { label: "Shopee", value: stats.shopeeProducts },
     { label: "Cliques 7 dias", value: stats.clicksLast7Days },
+    { label: "Sem afiliado", value: stats.withoutAffiliate, tone: "warning" },
     { label: "Cliques totais", value: stats.totalClicks },
   ];
 
   return (
     <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
       {items.map((item) => (
-        <div key={item.label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div
+          key={item.label}
+          className={`rounded-xl border p-4 shadow-sm ${
+            item.tone === "warning" && item.value > 0
+              ? "border-amber-200 bg-amber-50"
+              : "border-slate-200 bg-white"
+          }`}
+        >
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{item.label}</p>
-          <p className="mt-2 text-2xl font-black text-slate-950">{item.value}</p>
+          <p className={`mt-2 text-2xl font-black ${item.tone === "warning" && item.value > 0 ? "text-amber-700" : "text-slate-950"}`}>{item.value}</p>
         </div>
       ))}
     </section>
@@ -346,7 +355,7 @@ function ProductsTable({
         <tbody className="divide-y divide-slate-100">
           {products.map((product) => (
             <Fragment key={product.id}>
-              <tr key={product.id} className="align-top">
+              <tr key={product.id} className={`align-top ${!product.affiliate_url ? "bg-amber-50/45" : ""}`}>
                 <td className="p-3">
                   <div className="flex gap-3">
                     {product.image_url ? <img src={product.image_url} alt="" className="h-14 w-14 rounded-lg object-contain" /> : null}
@@ -354,6 +363,11 @@ function ProductsTable({
                       <p className="max-w-sm font-bold text-slate-900">{product.title}</p>
                       <p className="mt-1 text-xs text-slate-500">{product.category}</p>
                       <p className="mt-1 text-[10px] text-slate-400">{product.external_id}</p>
+                      {!product.affiliate_url ? (
+                        <p className="mt-2 inline-flex rounded-full bg-amber-100 px-2 py-1 text-[10px] font-black uppercase text-amber-700">
+                          Sem link afiliado
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </td>
@@ -367,9 +381,14 @@ function ProductsTable({
                 <td className="p-3">
                   <form action={updateAffiliateUrl} className="flex min-w-72 gap-2">
                     <input type="hidden" name="id" value={product.id} />
-                    <input name="affiliate_url" defaultValue={product.affiliate_url || ""} placeholder="URL afiliada oficial" className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs" />
+                    <input name="affiliate_url" defaultValue={product.affiliate_url || ""} placeholder="URL afiliada oficial" className={`w-full rounded-lg border px-3 py-2 text-xs ${product.affiliate_url ? "border-slate-200" : "border-amber-300 bg-amber-50"}`} />
                     <button className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-black uppercase text-white">Salvar</button>
                   </form>
+                  {!product.affiliate_url ? (
+                    <p className="mt-2 max-w-xs text-[11px] font-semibold text-amber-700">
+                      Sem afiliado: o botao de compra usa o link original e pode nao gerar comissao.
+                    </p>
+                  ) : null}
                 </td>
                 <td className="p-3">
                   <div className="flex flex-col gap-2">
@@ -538,3 +557,4 @@ export default async function AdminPage({
     </main>
   );
 }
+
