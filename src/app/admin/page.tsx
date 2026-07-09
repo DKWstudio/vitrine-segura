@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import { redirect } from "next/navigation";
 import AdminNotice from "@/components/admin/AdminNotice";
+import CopyProductLinkButton from "@/components/admin/CopyProductLinkButton";
 import DeleteProductButton from "@/components/admin/DeleteProductButton";
 import { isAdminAuthenticated } from "@/lib/admin/auth";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
@@ -65,7 +66,7 @@ async function getAdminData() {
     supabase.from("search_rules").select("*").order("created_at", { ascending: false }).limit(80),
     supabase
       .from("clicks")
-      .select("product_id, source, products(title)")
+      .select("product_id, source, created_at, products(title)")
       .order("created_at", { ascending: false })
       .limit(2000),
   ]);
@@ -83,12 +84,20 @@ async function getAdminData() {
   }
 
   const clickMap = new Map<string, ClickSummary>();
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  let clicksLast7Days = 0;
 
   for (const click of clicksResult.data || []) {
     const productId = String(click.product_id || "");
 
     if (!productId) {
       continue;
+    }
+
+    const createdAt = click.created_at ? new Date(String(click.created_at)).getTime() : 0;
+
+    if (createdAt >= sevenDaysAgo) {
+      clicksLast7Days += 1;
     }
 
     const product = Array.isArray(click.products) ? click.products[0] : click.products;
@@ -103,12 +112,22 @@ async function getAdminData() {
     }
   }
 
+  const products = (productsResult.data || []).map((product) => normalizeSupabaseProduct(product));
+
   return {
-    products: (productsResult.data || []).map((product) => normalizeSupabaseProduct(product)),
+    products,
     clickCountsByProduct: Object.fromEntries(
       Array.from(clickMap.entries()).map(([productId, summary]) => [productId, summary.clicks]),
     ) as Record<string, number>,
     rules: (rulesResult.data || []).map((rule) => normalizeRule(rule)),
+    stats: {
+      totalProducts: products.length,
+      activeProducts: products.filter((product) => product.is_active).length,
+      shopeeProducts: products.filter((product) => product.source === "shopee").length,
+      mercadoLivreProducts: products.filter((product) => product.source === "mercadolivre").length,
+      totalClicks: clicksResult.data?.length || 0,
+      clicksLast7Days,
+    },
     clickSummaries: Array.from(clickMap.values())
       .sort((a, b) => b.clicks - a.clicks)
       .slice(0, 10),
@@ -201,8 +220,14 @@ function ProductFields({ product }: { product?: AffiliateProduct }) {
       <input name="old_price" type="number" step="0.01" min="0" defaultValue={product?.old_price ?? ""} placeholder="Preco antigo" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
       <textarea name="description" defaultValue={product?.description || ""} placeholder="Descricao curta" className="min-h-20 rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-12" />
       <input name="image_url" defaultValue={product?.image_url || ""} placeholder="URL da imagem" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-6" />
-      <input name="product_url" required defaultValue={product?.product_url || ""} placeholder="URL oficial do produto" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-6" />
-      <input name="affiliate_url" defaultValue={product?.affiliate_url || ""} placeholder="URL afiliada oficial" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-6" />
+      <label className="block rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-slate-500 md:col-span-6">
+        Link original do produto
+        <input name="product_url" required defaultValue={product?.product_url || ""} placeholder="Link do produto na loja" className="mt-1 w-full border-0 p-0 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none placeholder:text-slate-400" />
+      </label>
+      <label className="block rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-black uppercase tracking-wider text-blue-700 md:col-span-6">
+        Link afiliado oficial
+        <input name="affiliate_url" defaultValue={product?.affiliate_url || ""} placeholder="Cole aqui o link gerado no painel de afiliados" className="mt-1 w-full border-0 bg-transparent p-0 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none placeholder:text-blue-400" />
+      </label>
       <input name="currency" defaultValue={product?.currency || "BRL"} placeholder="Moeda" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
       <input name="rating" type="number" step="0.1" min="0" max="5" defaultValue={product?.rating ?? ""} placeholder="Nota" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
       <input name="reviews_count" type="number" min="0" defaultValue={product?.reviews_count ?? ""} placeholder="Reviews" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
@@ -245,14 +270,52 @@ function ImportMercadoLivreForm() {
 }
 function ManualProductForm() {
   return (
-    <form action={createManualProduct} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-12">
-      <ProductFields />
-      <div className="md:col-span-12">
-        <button className="rounded-xl bg-blue-600 px-5 py-3 text-xs font-black uppercase text-white">
-          Cadastrar produto
-        </button>
+    <form action={createManualProduct} className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+      <div className="grid gap-3 rounded-xl border border-orange-100 bg-orange-50 p-4 text-sm text-orange-950 md:grid-cols-3">
+        <div>
+          <p className="text-xs font-black uppercase tracking-widest text-orange-700">Shopee manual</p>
+          <p className="mt-1 font-semibold">Use source Shopee e cole o link afiliado gerado no painel da Shopee.</p>
+        </div>
+        <div>
+          <p className="text-xs font-black uppercase tracking-widest text-orange-700">Link original</p>
+          <p className="mt-1 font-medium">Pode ser o link normal do produto na Shopee, usado apenas como fallback.</p>
+        </div>
+        <div>
+          <p className="text-xs font-black uppercase tracking-widest text-orange-700">Link afiliado</p>
+          <p className="mt-1 font-medium">E o link principal de saida. Ele sera usado pela rota /go/[id].</p>
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-12">
+        <ProductFields />
+        <div className="md:col-span-12">
+          <button className="rounded-xl bg-blue-600 px-5 py-3 text-xs font-black uppercase text-white">
+            Cadastrar produto
+          </button>
+        </div>
       </div>
     </form>
+  );
+}
+function AdminStats({ stats }: { stats: Awaited<ReturnType<typeof getAdminData>>["stats"] }) {
+  const items = [
+    { label: "Produtos", value: stats.totalProducts },
+    { label: "Ativos", value: stats.activeProducts },
+    { label: "Mercado Livre", value: stats.mercadoLivreProducts },
+    { label: "Shopee", value: stats.shopeeProducts },
+    { label: "Cliques 7 dias", value: stats.clicksLast7Days },
+    { label: "Cliques totais", value: stats.totalClicks },
+  ];
+
+  return (
+    <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+      {items.map((item) => (
+        <div key={item.label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{item.label}</p>
+          <p className="mt-2 text-2xl font-black text-slate-950">{item.value}</p>
+        </div>
+      ))}
+    </section>
   );
 }
 
@@ -310,6 +373,7 @@ function ProductsTable({
                 </td>
                 <td className="p-3">
                   <div className="flex flex-col gap-2">
+                    <CopyProductLinkButton productId={product.id} />
                     <form action={toggleProductActive}>
                       <input type="hidden" name="id" value={product.id} />
                       <input type="hidden" name="is_active" value={String(product.is_active)} />
@@ -408,6 +472,8 @@ export default async function AdminPage({
 
         <AdminNotice key={noticeError || noticeSuccess || "admin-notice"} error={noticeError} success={noticeSuccess} />
 
+        <AdminStats stats={data.stats} />
+
         <section className="space-y-4">
           <div>
             <h2 className="text-xl font-black uppercase">Cadastrar produto manual</h2>
@@ -472,4 +538,3 @@ export default async function AdminPage({
     </main>
   );
 }
-
