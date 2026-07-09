@@ -89,7 +89,7 @@ export default function ProductCatalog({ products, mostClickedProducts = [] }: P
 
   return (
     <>
-      <nav className="sticky top-0 z-50 mt-8 border-b border-slate-200 bg-white/95 py-5 shadow-sm backdrop-blur-md">
+      <nav className="relative z-10 mt-8 border-b border-slate-200 bg-white/95 py-5 shadow-sm backdrop-blur-md">
         <div className="container mx-auto space-y-4 px-4">
           <div className="flex items-center justify-between md:hidden">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -135,3 +135,4 @@ export default function ProductCatalog({ products, mostClickedProducts = [] }: P
     </>
   );
 }
+

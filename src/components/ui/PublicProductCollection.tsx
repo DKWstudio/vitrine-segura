@@ -123,7 +123,7 @@ export default function PublicProductCollection({
 
       <TrustCards />
 
-      <nav className="sticky top-0 z-50 mt-8 border-b border-slate-200 bg-white/95 py-5 shadow-sm backdrop-blur-md">
+      <nav className="relative z-10 mt-8 border-b border-slate-200 bg-white/95 py-5 shadow-sm backdrop-blur-md">
         <div className="container mx-auto space-y-4 px-4">
           <div className="flex flex-nowrap gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
             {sourceLinks.map((link) => (
@@ -163,5 +163,6 @@ export default function PublicProductCollection({
     </div>
   );
 }
+
 
 
