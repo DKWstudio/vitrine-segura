@@ -310,11 +310,11 @@ function AdminStats({ stats }: { stats: Awaited<ReturnType<typeof getAdminData>>
   ];
 
   return (
-    <section className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-7">
+    <section className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
       {items.map((item) => (
         <div
           key={item.label}
-          className={`rounded-lg border px-3 py-2 shadow-sm ${
+          className={`min-w-0 rounded-lg border px-3 py-2 shadow-sm ${
             item.tone === "warning" && item.value > 0
               ? "border-amber-200 bg-amber-50"
               : "border-slate-200 bg-white"
@@ -468,13 +468,15 @@ export default async function AdminPage({
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-8 text-slate-950">
       <section className="mx-auto max-w-7xl space-y-8">
-        <header className="flex flex-col justify-between gap-4 rounded-2xl bg-slate-950 p-6 text-white md:flex-row md:items-center">
-          <div>
-            <img src="/img/vitrineSegura.png" alt="Vitrine Segura" className="h-auto w-44 max-w-full rounded-xl border border-white/10 bg-white/5 p-2" />
-            <h1 className="mt-4 text-3xl font-black uppercase">Painel admin</h1>
-            <p className="mt-1 text-sm text-slate-300">Produtos, regras de busca e cliques.</p>
+        <header className="flex flex-col justify-between gap-6 rounded-2xl bg-slate-950 p-6 text-white lg:flex-row lg:items-center">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+            <img src="/img/vitrineSegura.png" alt="Vitrine Segura" className="h-auto w-44 max-w-full rounded-xl border border-white/10 bg-white/5 p-3" />
+            <div>
+              <h1 className="text-3xl font-black uppercase md:text-4xl">Painel admin</h1>
+              <p className="mt-1 text-sm text-slate-300 md:text-base">Produtos, regras de busca e cliques.</p>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 lg:justify-end">
             <a
               href="/api/auth/mercadolivre/start"
               className="rounded-xl bg-[#FFE600] px-4 py-2 text-xs font-black uppercase text-slate-950"
@@ -557,6 +559,7 @@ export default async function AdminPage({
     </main>
   );
 }
+
 
 
 
