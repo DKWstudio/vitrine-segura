@@ -20,7 +20,6 @@ interface PublicProductCollectionProps {
   showSourceFilter?: boolean;
 }
 
-
 export function getSourceFromParam(value: string | string[] | undefined): "all" | ProductSource {
   const source = Array.isArray(value) ? value[0] : value;
 
@@ -41,6 +40,10 @@ function getSourceHref(basePath: string, source: "all" | ProductSource) {
 
 function getCategoryHref(category: string, source: "all" | ProductSource) {
   const path = `/categoria/${slugifyCategory(category)}`;
+  return source === "all" ? path : `${path}?source=${source}`;
+}
+
+function withSource(path: string, source: "all" | ProductSource) {
   return source === "all" ? path : `${path}?source=${source}`;
 }
 
@@ -87,6 +90,14 @@ export default function PublicProductCollection({
     a.localeCompare(b, "pt-BR"),
   );
 
+  const quickLinks = [
+    { href: "/mercadolivre", label: "Mercado Livre", className: "text-blue-700 hover:border-blue-200 hover:bg-blue-50" },
+    { href: "/shopee", label: "Shopee", className: "text-orange-700 hover:border-orange-200 hover:bg-orange-50" },
+    { href: withSource("/ofertas/ate-50", selectedSource), label: "Ate R$ 50", className: "text-green-700 hover:border-green-200 hover:bg-green-50" },
+    { href: withSource("/ofertas/ate-100", selectedSource), label: "Ate R$ 100", className: "text-blue-700 hover:border-blue-200 hover:bg-blue-50" },
+    { href: "/", label: "Home", className: "text-slate-600 hover:border-slate-200 hover:bg-white" },
+  ];
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans antialiased text-slate-900">
       <header className="relative overflow-hidden bg-[#0F172A] pb-24 pt-16 text-center">
@@ -111,64 +122,52 @@ export default function PublicProductCollection({
 
       <nav className="sticky top-0 z-50 mt-8 border-b border-slate-200 bg-white/95 py-5 shadow-sm backdrop-blur-md">
         <div className="container mx-auto space-y-4 px-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ofertas:</span>
-            <Link
-              href={selectedSource === "all" ? "/ofertas/ate-50" : `/ofertas/ate-50?source=${selectedSource}`}
-              scroll={false}
-              className="rounded-full border border-green-200 bg-green-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-green-700"
-            >
-              Ate R$ 50
-            </Link>
-            <Link
-              href={selectedSource === "all" ? "/ofertas/ate-100" : `/ofertas/ate-100?source=${selectedSource}`}
-              scroll={false}
-              className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-blue-700"
-            >
-              Ate R$ 100
-            </Link>
-            <Link
-              href="/mercadolivre"
-              scroll={false}
-              className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-blue-700"
-            >
-              Mercado Livre
-            </Link>
-            <Link
-              href="/shopee"
-              scroll={false}
-              className="rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-orange-700"
-            >
-              Shopee
-            </Link>
-            <Link
-              href="/"
-              scroll={false}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-wider text-slate-700 hover:border-[#FFE600]"
-            >
-              Home
-            </Link>
-          </div>
-
           {showSourceFilter ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Fonte:</span>
-              {sourceOptions.map((source) => (
-              <Link
-                key={source.id}
-                href={getSourceHref(basePath, source.id)}
-                scroll={false}
-                className={`rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-wider transition-all ${
-                  selectedSource === source.id
-                    ? "border-blue-600 bg-blue-600 text-white"
-                    : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700"
-                }`}
-              >
-                {source.label}
-              </Link>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-2">
+              <div className="grid grid-cols-3 gap-1 rounded-xl bg-white p-1 shadow-sm">
+                {sourceOptions.map((source) => (
+                  <Link
+                    key={source.id}
+                    href={getSourceHref(basePath, source.id)}
+                    scroll={false}
+                    className={`rounded-lg px-3 py-2 text-center text-[10px] font-black uppercase tracking-wider transition-all ${
+                      selectedSource === source.id
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    {source.label}
+                  </Link>
+                ))}
+              </div>
+
+              <div className="mt-2 flex flex-nowrap gap-2 overflow-x-auto pb-1">
+                {quickLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    scroll={false}
+                    className={`flex-shrink-0 rounded-lg border border-transparent px-3 py-2 text-[10px] font-black uppercase tracking-wider transition ${link.className}`}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-nowrap gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50 p-2">
+              {quickLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  scroll={false}
+                  className={`flex-shrink-0 rounded-lg border border-transparent px-3 py-2 text-[10px] font-black uppercase tracking-wider transition ${link.className}`}
+                >
+                  {link.label}
+                </Link>
               ))}
             </div>
-          ) : null}
+          )}
 
           <div className="flex flex-nowrap gap-3 overflow-x-auto pb-1 -mx-4 px-4">
             {categories.map((category) => (
@@ -191,8 +190,3 @@ export default function PublicProductCollection({
     </div>
   );
 }
-
-
-
-
-
