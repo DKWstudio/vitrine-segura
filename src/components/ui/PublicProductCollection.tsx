@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { CheckCircle, Shield, Star, Truck } from "lucide-react";
 import ProductGrid from "@/components/ui/ProductGrid";
 import { slugifyCategory } from "@/lib/seo";
@@ -17,6 +17,7 @@ interface PublicProductCollectionProps {
   allProducts: AffiliateProduct[];
   basePath: string;
   selectedSource: "all" | ProductSource;
+  showSourceFilter?: boolean;
 }
 
 
@@ -72,6 +73,7 @@ export default function PublicProductCollection({
   allProducts,
   basePath,
   selectedSource,
+  showSourceFilter = true,
 }: PublicProductCollectionProps) {
   const categories = Array.from(new Set(allProducts.map((product) => product.category))).sort((a, b) =>
     a.localeCompare(b, "pt-BR"),
@@ -116,6 +118,18 @@ export default function PublicProductCollection({
               Ate R$ 100
             </Link>
             <Link
+              href="/mercadolivre"
+              className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-blue-700"
+            >
+              Mercado Livre
+            </Link>
+            <Link
+              href="/shopee"
+              className="rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-orange-700"
+            >
+              Shopee
+            </Link>
+            <Link
               href="/"
               className="rounded-full border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-wider text-slate-700 hover:border-[#FFE600]"
             >
@@ -123,7 +137,8 @@ export default function PublicProductCollection({
             </Link>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          {showSourceFilter ? (
+            <div className="flex flex-wrap items-center gap-2">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Fonte:</span>
             {sourceOptions.map((source) => (
               <Link
@@ -138,7 +153,8 @@ export default function PublicProductCollection({
                 {source.label}
               </Link>
             ))}
-          </div>
+            </div>
+          ) : null}
 
           <div className="flex flex-nowrap gap-3 overflow-x-auto pb-1 -mx-4 px-4">
             {categories.map((category) => (
@@ -160,4 +176,6 @@ export default function PublicProductCollection({
     </div>
   );
 }
+
+
 

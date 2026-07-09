@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -76,6 +76,24 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              Paginas:
+            </span>
+            <Link
+              href="/mercadolivre"
+              className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-blue-700"
+            >
+              Mercado Livre
+            </Link>
+            <Link
+              href="/shopee"
+              className="rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-[10px] font-black uppercase tracking-wider text-orange-700"
+            >
+              Shopee
+            </Link>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
               Ofertas:
             </span>
             <Link
@@ -100,4 +118,5 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
     </>
   );
 }
+
 

@@ -55,6 +55,18 @@ export async function GET() {
       priority: 1,
     },
     {
+      url: absoluteUrl("/mercadolivre"),
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.9,
+    },
+    {
+      url: absoluteUrl("/shopee"),
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.9,
+    },
+    {
       url: absoluteUrl("/ofertas/ate-50"),
       lastModified: now,
       changeFrequency: "daily",
@@ -101,3 +113,4 @@ export async function GET() {
     });
   }
 }
+
