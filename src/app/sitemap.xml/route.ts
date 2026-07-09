@@ -1,4 +1,4 @@
-﻿import { getActiveProducts } from "@/lib/products";
+import { getActiveProducts } from "@/lib/products";
 import { absoluteUrl, slugifyCategory } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
@@ -6,8 +6,6 @@ export const dynamic = "force-dynamic";
 type SitemapEntry = {
   url: string;
   lastModified: Date;
-  changeFrequency: "daily" | "weekly";
-  priority: number;
 };
 
 function escapeXml(value: string) {
@@ -26,14 +24,16 @@ function toLastModified(value: string | null | undefined, fallback: Date) {
   return Number.isNaN(date.getTime()) ? fallback : date;
 }
 
+function formatSitemapDate(value: Date) {
+  return value.toISOString().slice(0, 10);
+}
+
 function renderSitemap(entries: SitemapEntry[]) {
   const urls = entries
     .map(
       (entry) => `  <url>
     <loc>${escapeXml(entry.url)}</loc>
-    <lastmod>${entry.lastModified.toISOString()}</lastmod>
-    <changefreq>${entry.changeFrequency}</changefreq>
-    <priority>${entry.priority.toFixed(1)}</priority>
+    <lastmod>${formatSitemapDate(entry.lastModified)}</lastmod>
   </url>`,
     )
     .join("\n");
@@ -45,39 +45,23 @@ ${urls}
 `;
 }
 
+function sitemapResponse(xml: string) {
+  return new Response(xml, {
+    headers: {
+      "Content-Type": "application/xml; charset=utf-8",
+      "Cache-Control": "public, max-age=0, must-revalidate",
+    },
+  });
+}
+
 export async function GET() {
   const now = new Date();
   const baseEntries: SitemapEntry[] = [
-    {
-      url: absoluteUrl("/"),
-      lastModified: now,
-      changeFrequency: "daily",
-      priority: 1,
-    },
-    {
-      url: absoluteUrl("/mercadolivre"),
-      lastModified: now,
-      changeFrequency: "daily",
-      priority: 0.9,
-    },
-    {
-      url: absoluteUrl("/shopee"),
-      lastModified: now,
-      changeFrequency: "daily",
-      priority: 0.9,
-    },
-    {
-      url: absoluteUrl("/ofertas/ate-50"),
-      lastModified: now,
-      changeFrequency: "daily",
-      priority: 0.8,
-    },
-    {
-      url: absoluteUrl("/ofertas/ate-100"),
-      lastModified: now,
-      changeFrequency: "daily",
-      priority: 0.8,
-    },
+    { url: absoluteUrl("/"), lastModified: now },
+    { url: absoluteUrl("/mercadolivre"), lastModified: now },
+    { url: absoluteUrl("/shopee"), lastModified: now },
+    { url: absoluteUrl("/ofertas/ate-50"), lastModified: now },
+    { url: absoluteUrl("/ofertas/ate-100"), lastModified: now },
   ];
 
   try {
@@ -86,31 +70,15 @@ export async function GET() {
     const categoryEntries: SitemapEntry[] = categories.map((category) => ({
       url: absoluteUrl(`/categoria/${slugifyCategory(category)}`),
       lastModified: now,
-      changeFrequency: "daily",
-      priority: 0.7,
     }));
     const productEntries: SitemapEntry[] = products.map((product) => ({
       url: absoluteUrl(`/produto/${product.id}`),
       lastModified: toLastModified(product.last_checked_at || product.created_at, now),
-      changeFrequency: "weekly",
-      priority: product.is_featured ? 0.8 : 0.6,
     }));
 
-    return new Response(renderSitemap([...baseEntries, ...categoryEntries, ...productEntries]), {
-      headers: {
-        "Content-Type": "application/xml; charset=utf-8",
-        "Cache-Control": "public, max-age=0, s-maxage=3600",
-      },
-    });
+    return sitemapResponse(renderSitemap([...baseEntries, ...categoryEntries, ...productEntries]));
   } catch (error) {
     console.warn("Could not generate full sitemap. Returning base sitemap.", error);
-
-    return new Response(renderSitemap(baseEntries), {
-      headers: {
-        "Content-Type": "application/xml; charset=utf-8",
-        "Cache-Control": "public, max-age=0, s-maxage=300",
-      },
-    });
+    return sitemapResponse(renderSitemap(baseEntries));
   }
 }
-
