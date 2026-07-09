@@ -1,5 +1,6 @@
-import { products as localProducts } from "@/data/products";
+﻿import { products as localProducts } from "@/data/products";
 import { createPublicSupabaseClient } from "@/lib/supabase/client";
+import { createServiceSupabaseClient } from "@/lib/supabase/server";
 import type { AffiliateProduct, Product } from "@/types/product";
 
 export const productColumns = `
@@ -135,4 +136,75 @@ export async function getRelatedProducts(product: AffiliateProduct, limit = 4): 
     .filter((item) => item.id !== product.id && item.category === product.category)
     .slice(0, limit);
 }
+
+export async function getMostClickedProducts(limit = 8, days = 7): Promise<AffiliateProduct[]> {
+  let supabase: ReturnType<typeof createServiceSupabaseClient>;
+
+  try {
+    supabase = createServiceSupabaseClient();
+  } catch (error) {
+    console.warn(
+      "Could not create Supabase service client for clicked products.",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return [];
+  }
+
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+  try {
+    const { data: clicks, error: clicksError } = await supabase
+      .from("clicks")
+      .select("product_id")
+      .gte("created_at", since)
+      .not("product_id", "is", null)
+      .limit(2000);
+
+    if (clicksError) {
+      console.warn("Could not load clicked products.", clicksError.message);
+      return [];
+    }
+
+    const clickCounts = new Map<string, number>();
+
+    for (const click of clicks || []) {
+      const productId = String(click.product_id || "");
+
+      if (!productId) {
+        continue;
+      }
+
+      clickCounts.set(productId, (clickCounts.get(productId) || 0) + 1);
+    }
+
+    const productIds = Array.from(clickCounts.keys());
+
+    if (productIds.length === 0) {
+      return [];
+    }
+
+    const { data: products, error: productsError } = await supabase
+      .from("products")
+      .select(productColumns)
+      .in("id", productIds)
+      .eq("is_active", true);
+
+    if (productsError) {
+      console.warn("Could not load most clicked product details.", productsError.message);
+      return [];
+    }
+
+    return (products || [])
+      .map((product) => normalizeSupabaseProduct(product))
+      .sort((a, b) => (clickCounts.get(b.id) || 0) - (clickCounts.get(a.id) || 0))
+      .slice(0, limit);
+  } catch (error) {
+    console.warn(
+      "Unexpected most clicked product loading error.",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return [];
+  }
+}
+
 

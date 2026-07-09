@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { CheckCircle, Shield, Star, Truck } from "lucide-react";
 import ProductCatalog from "@/components/ui/ProductCatalog";
-import { getActiveProducts } from "@/lib/products";
+import ProductGrid from "@/components/ui/ProductGrid";
+import { getActiveProducts, getMostClickedProducts } from "@/lib/products";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ function TrustCards() {
 }
 
 export default async function VitrineSegura() {
-  const products = await getActiveProducts();
+  const [products, mostClickedProducts] = await Promise.all([getActiveProducts(), getMostClickedProducts(8, 7)]);
 
   return (
     <div id="top" className="min-h-screen bg-[#F8FAFC] font-sans antialiased text-slate-900">
@@ -61,8 +62,24 @@ export default async function VitrineSegura() {
       </header>
 
       <TrustCards />
+
+      {mostClickedProducts.length > 0 ? (
+        <section className="container mx-auto max-w-[1200px] px-4 pt-10">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-blue-600">Ranking real</p>
+              <h2 className="text-2xl font-black uppercase text-slate-950 md:text-3xl">Mais clicados da semana</h2>
+              <p className="mt-1 text-sm font-medium text-slate-500">Produtos que mais receberam cliques nos últimos 7 dias.</p>
+            </div>
+          </div>
+          <ProductGrid products={mostClickedProducts} />
+        </section>
+      ) : null}
+
       <ProductCatalog products={products} />
     </div>
   );
 }
+
+
 
