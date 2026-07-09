@@ -1,4 +1,5 @@
-﻿import { Fragment } from "react";
+import { Fragment } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import AdminNotice from "@/components/admin/AdminNotice";
 import CopyProductLinkButton from "@/components/admin/CopyProductLinkButton";
@@ -138,6 +139,41 @@ async function getAdminData() {
 function getSingleParam(params: Record<string, string | string[] | undefined>, key: string) {
   const value = params[key];
   return Array.isArray(value) ? value[0] : value;
+}
+
+type ProductAdminFilter = "all" | "shopee" | "mercadolivre" | "without_affiliate" | "featured" | "inactive";
+
+function getProductAdminFilter(value: string | string[] | undefined): ProductAdminFilter {
+  const filter = Array.isArray(value) ? value[0] : value;
+
+  if (
+    filter === "shopee" ||
+    filter === "mercadolivre" ||
+    filter === "without_affiliate" ||
+    filter === "featured" ||
+    filter === "inactive"
+  ) {
+    return filter;
+  }
+
+  return "all";
+}
+
+function filterAdminProducts(products: AffiliateProduct[], filter: ProductAdminFilter) {
+  switch (filter) {
+    case "shopee":
+      return products.filter((product) => product.source === "shopee");
+    case "mercadolivre":
+      return products.filter((product) => product.source === "mercadolivre");
+    case "without_affiliate":
+      return products.filter((product) => !product.affiliate_url);
+    case "featured":
+      return products.filter((product) => product.is_featured);
+    case "inactive":
+      return products.filter((product) => !product.is_active);
+    default:
+      return products;
+  }
 }
 
 function LoginForm({ hasError }: { hasError: boolean }) {
@@ -328,15 +364,71 @@ function AdminStats({ stats }: { stats: Awaited<ReturnType<typeof getAdminData>>
   );
 }
 
+function ProductFilterTabs({
+  selectedFilter,
+  products,
+}: {
+  selectedFilter: ProductAdminFilter;
+  products: AffiliateProduct[];
+}) {
+  const filters: Array<{ id: ProductAdminFilter; label: string; count: number; tone?: "warning" }> = [
+    { id: "all", label: "Todos", count: products.length },
+    { id: "shopee", label: "Shopee", count: products.filter((product) => product.source === "shopee").length },
+    {
+      id: "mercadolivre",
+      label: "Mercado Livre",
+      count: products.filter((product) => product.source === "mercadolivre").length,
+    },
+    {
+      id: "without_affiliate",
+      label: "Sem afiliado",
+      count: products.filter((product) => !product.affiliate_url).length,
+      tone: "warning",
+    },
+    { id: "featured", label: "Destaques", count: products.filter((product) => product.is_featured).length },
+    { id: "inactive", label: "Inativos", count: products.filter((product) => !product.is_active).length },
+  ];
+
+  return (
+    <nav className="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Filtros de produtos do admin">
+      {filters.map((filter) => {
+        const isActive = selectedFilter === filter.id;
+        const href = filter.id === "all" ? "/admin" : `/admin?product_filter=${filter.id}`;
+
+        return (
+          <Link
+            key={filter.id}
+            href={href}
+            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-black uppercase tracking-wide transition ${
+              isActive
+                ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                : filter.tone === "warning" && filter.count > 0
+                  ? "border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-300 hover:bg-amber-100"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+            }`}
+            aria-current={isActive ? "page" : undefined}
+          >
+            <span>{filter.label}</span>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] ${isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
+              {filter.count}
+            </span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
 function ProductsTable({
   products,
   clickCountsByProduct,
+  emptyMessage = "Nenhum produto salvo no Supabase ainda.",
 }: {
   products: AffiliateProduct[];
   clickCountsByProduct: Record<string, number>;
+  emptyMessage?: string;
 }) {
   if (products.length === 0) {
-    return <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">Nenhum produto salvo no Supabase ainda.</p>;
+    return <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">{emptyMessage}</p>;
   }
 
   return (
@@ -448,6 +540,7 @@ export default async function AdminPage({
   const params = searchParams ? await searchParams : {};
   const noticeError = getSingleParam(params, "notice_error") || getSingleParam(params, "import_error");
   const noticeSuccess = getSingleParam(params, "notice_success") || getSingleParam(params, "import_success");
+  const selectedProductFilter = getProductAdminFilter(params.product_filter);
 
   if (!(await isAdminAuthenticated())) {
     return <LoginForm hasError={params.error === "invalid-password"} />;
@@ -464,6 +557,8 @@ export default async function AdminPage({
 
     throw error;
   }
+
+  const filteredProducts = filterAdminProducts(data.products, selectedProductFilter);
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-8 text-slate-950">
@@ -525,9 +620,14 @@ export default async function AdminPage({
         <section className="space-y-4">
           <div>
             <h2 className="text-xl font-black uppercase">Produtos encontrados</h2>
-            <p className="text-sm text-slate-500">Edite dados, link afiliado, status e destaque.</p>
+            <p className="text-sm text-slate-500">Filtre por fonte, afiliado, destaque ou status antes de editar.</p>
           </div>
-          <ProductsTable products={data.products} clickCountsByProduct={data.clickCountsByProduct} />
+          <ProductFilterTabs selectedFilter={selectedProductFilter} products={data.products} />
+          <ProductsTable
+            products={filteredProducts}
+            clickCountsByProduct={data.clickCountsByProduct}
+            emptyMessage="Nenhum produto encontrado nesse filtro."
+          />
         </section>
 
         <section className="space-y-4">
