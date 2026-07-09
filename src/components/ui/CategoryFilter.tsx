@@ -7,7 +7,7 @@ interface CategoryFilterProps {
 const categoryLabels: Record<string, string> = {
   Casa: "Casa",
   Eletronicos: "Eletronicos",
-  "Eletrônicos": "Eletronicos",
+  "Eletr\u00f4nicos": "Eletronicos",
   Beleza: "Beleza",
   Audio: "Audio",
   "Roupas-Masc": "Masculino",
@@ -24,15 +24,15 @@ export default function CategoryFilter({
   onSelectCategory,
 }: CategoryFilterProps) {
   return (
-    <div className="flex flex-nowrap items-center gap-3 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4 mask-fade-edge">
+    <div className="flex flex-nowrap items-center gap-2 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4 mask-fade-edge sm:gap-2.5">
       {categories.map((category) => (
         <button
           key={category}
           onClick={() => onSelectCategory(category)}
-          className={`flex-shrink-0 whitespace-nowrap px-6 py-3 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all border-2 ${
+          className={`flex-shrink-0 whitespace-nowrap rounded-xl border-2 px-3.5 py-2.5 text-[9px] font-black uppercase tracking-wide transition-all sm:px-4 sm:text-[10px] lg:px-5 ${
             selectedCategory === category
-              ? "bg-[#FFE600] text-[#0F172A] border-[#FFE600] shadow-md scale-105"
-              : "bg-[#0F172A] text-white border-[#0F172A] hover:bg-[#FFE600] hover:text-[#0F172A] hover:border-[#FFE600]"
+              ? "border-[#FFE600] bg-[#FFE600] text-[#0F172A] shadow-md"
+              : "border-[#0F172A] bg-[#0F172A] text-white hover:border-[#FFE600] hover:bg-[#FFE600] hover:text-[#0F172A]"
           }`}
         >
           {categoryLabels[category] || category}

@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { CheckCircle, Shield, Star, Truck } from "lucide-react";
 import ProductGrid from "@/components/ui/ProductGrid";
 import { slugifyCategory } from "@/lib/seo";
@@ -142,13 +142,13 @@ export default function PublicProductCollection({
             ))}
           </div>
 
-          <div className="flex flex-nowrap gap-3 overflow-x-auto pb-1 -mx-4 px-4">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:gap-2.5">
             {categories.map((category) => (
               <Link
                 key={category}
                 href={getCategoryHref(category, selectedSource)}
                 scroll={false}
-                className="flex-shrink-0 rounded-xl border-2 border-[#0F172A] bg-[#0F172A] px-6 py-3 text-[11px] font-black uppercase tracking-wider text-white transition-all hover:border-[#FFE600] hover:bg-[#FFE600] hover:text-[#0F172A]"
+                className="flex-shrink-0 whitespace-nowrap rounded-xl border-2 border-[#0F172A] bg-[#0F172A] px-3.5 py-2.5 text-[9px] font-black uppercase tracking-wide text-white transition-all hover:border-[#FFE600] hover:bg-[#FFE600] hover:text-[#0F172A] sm:px-4 sm:text-[10px] lg:px-5"
               >
                 {category}
               </Link>
