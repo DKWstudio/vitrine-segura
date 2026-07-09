@@ -310,7 +310,7 @@ function AdminStats({ stats }: { stats: Awaited<ReturnType<typeof getAdminData>>
   ];
 
   return (
-    <section className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+    <section className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-7">
       {items.map((item) => (
         <div
           key={item.label}
@@ -470,8 +470,8 @@ export default async function AdminPage({
       <section className="mx-auto max-w-7xl space-y-8">
         <header className="flex flex-col justify-between gap-4 rounded-2xl bg-slate-950 p-6 text-white md:flex-row md:items-center">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-[#FFE600]">Vitrine Segura</p>
-            <h1 className="mt-2 text-3xl font-black uppercase">Painel admin</h1>
+            <img src="/img/vitrineSegura.png" alt="Vitrine Segura" className="h-auto w-44 max-w-full rounded-xl border border-white/10 bg-white/5 p-2" />
+            <h1 className="mt-4 text-3xl font-black uppercase">Painel admin</h1>
             <p className="mt-1 text-sm text-slate-300">Produtos, regras de busca e cliques.</p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -557,5 +557,6 @@ export default async function AdminPage({
     </main>
   );
 }
+
 
 
