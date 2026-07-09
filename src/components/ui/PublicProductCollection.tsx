@@ -5,7 +5,7 @@ import { slugifyCategory } from "@/lib/seo";
 import type { AffiliateProduct, ProductSource } from "@/types/product";
 
 const sourceOptions: Array<{ id: "all" | ProductSource; label: string }> = [
-  { id: "all", label: "Todas" },
+  { id: "all", label: "Todos" },
   { id: "mercadolivre", label: "Mercado Livre" },
   { id: "shopee", label: "Shopee" },
 ];
@@ -90,12 +90,22 @@ export default function PublicProductCollection({
     a.localeCompare(b, "pt-BR"),
   );
 
-  const quickLinks = [
-    { href: "/mercadolivre", label: "Mercado Livre", className: "text-blue-700 hover:border-blue-200 hover:bg-blue-50" },
-    { href: "/shopee", label: "Shopee", className: "text-orange-700 hover:border-orange-200 hover:bg-orange-50" },
-    { href: withSource("/ofertas/ate-50", selectedSource), label: "Ate R$ 50", className: "text-green-700 hover:border-green-200 hover:bg-green-50" },
-    { href: withSource("/ofertas/ate-100", selectedSource), label: "Ate R$ 100", className: "text-blue-700 hover:border-blue-200 hover:bg-blue-50" },
-    { href: "/", label: "Home", className: "text-slate-600 hover:border-slate-200 hover:bg-white" },
+  const sourceLinks = showSourceFilter
+    ? sourceOptions.map((source) => ({
+        href: getSourceHref(basePath, source.id),
+        label: source.label,
+        active: selectedSource === source.id,
+        className: "text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700",
+      }))
+    : [
+        { href: "/", label: "Todos", active: false, className: "text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700" },
+        { href: "/mercadolivre", label: "Mercado Livre", active: selectedSource === "mercadolivre", className: "text-blue-700 hover:border-blue-200 hover:bg-blue-50" },
+        { href: "/shopee", label: "Shopee", active: selectedSource === "shopee", className: "text-orange-700 hover:border-orange-200 hover:bg-orange-50" },
+      ];
+
+  const offerLinks = [
+    { href: withSource("/ofertas/ate-50", selectedSource), label: "Ate R$ 50", active: false, className: "text-green-700 hover:border-green-200 hover:bg-green-50" },
+    { href: withSource("/ofertas/ate-100", selectedSource), label: "Ate R$ 100", active: false, className: "text-blue-700 hover:border-blue-200 hover:bg-blue-50" },
   ];
 
   return (
@@ -122,52 +132,22 @@ export default function PublicProductCollection({
 
       <nav className="sticky top-0 z-50 mt-8 border-b border-slate-200 bg-white/95 py-5 shadow-sm backdrop-blur-md">
         <div className="container mx-auto space-y-4 px-4">
-          {showSourceFilter ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-2">
-              <div className="grid grid-cols-3 gap-1 rounded-xl bg-white p-1 shadow-sm">
-                {sourceOptions.map((source) => (
-                  <Link
-                    key={source.id}
-                    href={getSourceHref(basePath, source.id)}
-                    scroll={false}
-                    className={`rounded-lg px-3 py-2 text-center text-[10px] font-black uppercase tracking-wider transition-all ${
-                      selectedSource === source.id
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-                    }`}
-                  >
-                    {source.label}
-                  </Link>
-                ))}
-              </div>
-
-              <div className="mt-2 flex flex-nowrap gap-2 overflow-x-auto pb-1">
-                {quickLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    scroll={false}
-                    className={`flex-shrink-0 rounded-lg border border-transparent px-3 py-2 text-[10px] font-black uppercase tracking-wider transition ${link.className}`}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-nowrap gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50 p-2">
-              {quickLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  scroll={false}
-                  className={`flex-shrink-0 rounded-lg border border-transparent px-3 py-2 text-[10px] font-black uppercase tracking-wider transition ${link.className}`}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          )}
+          <div className="flex flex-nowrap gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+            {[...sourceLinks, ...offerLinks].map((link) => (
+              <Link
+                key={`${link.href}-${link.label}`}
+                href={link.href}
+                scroll={false}
+                className={`flex-shrink-0 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-wider transition ${
+                  link.active
+                    ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                    : `border-transparent ${link.className}`
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
 
           <div className="flex flex-nowrap gap-3 overflow-x-auto pb-1 -mx-4 px-4">
             {categories.map((category) => (
@@ -190,3 +170,4 @@ export default function PublicProductCollection({
     </div>
   );
 }
+

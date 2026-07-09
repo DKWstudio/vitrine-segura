@@ -12,14 +12,12 @@ interface ProductCatalogProps {
 }
 
 const sourceOptions: Array<{ id: "all" | ProductSource; label: string }> = [
-  { id: "all", label: "Todas" },
+  { id: "all", label: "Todos" },
   { id: "mercadolivre", label: "Mercado Livre" },
   { id: "shopee", label: "Shopee" },
 ];
 
-const quickLinks = [
-  { href: "/mercadolivre", label: "Mercado Livre", className: "text-blue-700 hover:border-blue-200 hover:bg-blue-50" },
-  { href: "/shopee", label: "Shopee", className: "text-orange-700 hover:border-orange-200 hover:bg-orange-50" },
+const offerLinks = [
   { href: "/ofertas/ate-50", label: "Ate R$ 50", className: "text-green-700 hover:border-green-200 hover:bg-green-50" },
   { href: "/ofertas/ate-100", label: "Ate R$ 100", className: "text-blue-700 hover:border-blue-200 hover:bg-blue-50" },
 ];
@@ -62,35 +60,30 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
             onSelectCategory={setSelectedCategory}
           />
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-2">
-            <div className="grid grid-cols-3 gap-1 rounded-xl bg-white p-1 shadow-sm">
-              {sourceOptions.map((source) => (
-                <button
-                  key={source.id}
-                  onClick={() => setSelectedSource(source.id)}
-                  className={`rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-wider transition-all ${
-                    selectedSource === source.id
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-                  }`}
-                >
-                  {source.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-2 flex flex-nowrap gap-2 overflow-x-auto pb-1">
-              {quickLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  scroll={false}
-                  className={`flex-shrink-0 rounded-lg border border-transparent px-3 py-2 text-[10px] font-black uppercase tracking-wider transition ${link.className}`}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
+          <div className="flex flex-nowrap gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+            {sourceOptions.map((source) => (
+              <button
+                key={source.id}
+                onClick={() => setSelectedSource(source.id)}
+                className={`flex-shrink-0 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-wider transition-all ${
+                  selectedSource === source.id
+                    ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                    : "border-transparent text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                }`}
+              >
+                {source.label}
+              </button>
+            ))}
+            {offerLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                scroll={false}
+                className={`flex-shrink-0 rounded-xl border border-transparent px-4 py-2 text-[10px] font-black uppercase tracking-wider transition ${link.className}`}
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
         </div>
       </nav>
