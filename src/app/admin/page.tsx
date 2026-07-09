@@ -310,18 +310,18 @@ function AdminStats({ stats }: { stats: Awaited<ReturnType<typeof getAdminData>>
   ];
 
   return (
-    <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+    <section className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
       {items.map((item) => (
         <div
           key={item.label}
-          className={`rounded-xl border p-4 shadow-sm ${
+          className={`rounded-lg border px-3 py-2 shadow-sm ${
             item.tone === "warning" && item.value > 0
               ? "border-amber-200 bg-amber-50"
               : "border-slate-200 bg-white"
           }`}
         >
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{item.label}</p>
-          <p className={`mt-2 text-2xl font-black ${item.tone === "warning" && item.value > 0 ? "text-amber-700" : "text-slate-950"}`}>{item.value}</p>
+          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{item.label}</p>
+          <p className={`mt-1 text-xl font-black leading-none ${item.tone === "warning" && item.value > 0 ? "text-amber-700" : "text-slate-950"}`}>{item.value}</p>
         </div>
       ))}
     </section>
@@ -557,4 +557,5 @@ export default async function AdminPage({
     </main>
   );
 }
+
 
