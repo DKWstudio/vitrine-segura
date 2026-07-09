@@ -43,9 +43,6 @@ function getCategoryHref(category: string, source: "all" | ProductSource) {
   return source === "all" ? path : `${path}?source=${source}`;
 }
 
-function withSource(path: string, source: "all" | ProductSource) {
-  return source === "all" ? path : `${path}?source=${source}`;
-}
 
 function TrustCards() {
   const items = [
@@ -103,10 +100,6 @@ export default function PublicProductCollection({
         { href: "/shopee", label: "Shopee", active: selectedSource === "shopee", className: "text-orange-700 hover:border-orange-200 hover:bg-orange-50" },
       ];
 
-  const offerLinks = [
-    { href: withSource("/ofertas/ate-50", selectedSource), label: "Ate R$ 50", active: false, className: "text-green-700 hover:border-green-200 hover:bg-green-50" },
-    { href: withSource("/ofertas/ate-100", selectedSource), label: "Ate R$ 100", active: false, className: "text-blue-700 hover:border-blue-200 hover:bg-blue-50" },
-  ];
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans antialiased text-slate-900">
@@ -133,7 +126,7 @@ export default function PublicProductCollection({
       <nav className="sticky top-0 z-50 mt-8 border-b border-slate-200 bg-white/95 py-5 shadow-sm backdrop-blur-md">
         <div className="container mx-auto space-y-4 px-4">
           <div className="flex flex-nowrap gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-            {[...sourceLinks, ...offerLinks].map((link) => (
+            {sourceLinks.map((link) => (
               <Link
                 key={`${link.href}-${link.label}`}
                 href={link.href}
@@ -170,4 +163,5 @@ export default function PublicProductCollection({
     </div>
   );
 }
+
 

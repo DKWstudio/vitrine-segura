@@ -17,10 +17,6 @@ const sourceOptions: Array<{ id: "all" | ProductSource; label: string }> = [
   { id: "shopee", label: "Shopee" },
 ];
 
-const offerLinks = [
-  { href: "/ofertas/ate-50", label: "Ate R$ 50", className: "text-green-700 hover:border-green-200 hover:bg-green-50" },
-  { href: "/ofertas/ate-100", label: "Ate R$ 100", className: "text-blue-700 hover:border-blue-200 hover:bg-blue-50" },
-];
 
 export default function ProductCatalog({ products }: ProductCatalogProps) {
   const categories = useMemo(() => {
@@ -74,16 +70,6 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
                 {source.label}
               </button>
             ))}
-            {offerLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                scroll={false}
-                className={`flex-shrink-0 rounded-xl border border-transparent px-4 py-2 text-[10px] font-black uppercase tracking-wider transition ${link.className}`}
-              >
-                {link.label}
-              </Link>
-            ))}
           </div>
         </div>
       </nav>
@@ -94,3 +80,4 @@ export default function ProductCatalog({ products }: ProductCatalogProps) {
     </>
   );
 }
+
