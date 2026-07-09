@@ -4,9 +4,19 @@ import { useState } from "react";
 
 type CopyProductLinkButtonProps = {
   productId: string;
+  label?: string;
+  copiedLabel?: string;
+  className?: string;
 };
 
-export default function CopyProductLinkButton({ productId }: CopyProductLinkButtonProps) {
+const defaultClassName = "w-full rounded-lg border border-blue-200 px-3 py-2 text-xs font-black uppercase text-blue-700 hover:bg-blue-50";
+
+export default function CopyProductLinkButton({
+  productId,
+  label = "Copiar link publico",
+  copiedLabel = "Link copiado",
+  className = defaultClassName,
+}: CopyProductLinkButtonProps) {
   const [copied, setCopied] = useState(false);
 
   async function copyLink() {
@@ -17,12 +27,8 @@ export default function CopyProductLinkButton({ productId }: CopyProductLinkButt
   }
 
   return (
-    <button
-      type="button"
-      onClick={copyLink}
-      className="w-full rounded-lg border border-blue-200 px-3 py-2 text-xs font-black uppercase text-blue-700 hover:bg-blue-50"
-    >
-      {copied ? "Link copiado" : "Copiar link publico"}
+    <button type="button" onClick={copyLink} className={className}>
+      {copied ? copiedLabel : label}
     </button>
   );
 }

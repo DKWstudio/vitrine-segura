@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import AdminNotice from "@/components/admin/AdminNotice";
 import CopyProductLinkButton from "@/components/admin/CopyProductLinkButton";
 import DeleteProductButton from "@/components/admin/DeleteProductButton";
+import ShopeeAffiliateWarning from "@/components/admin/ShopeeAffiliateWarning";
 import { isAdminAuthenticated } from "@/lib/admin/auth";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 import { normalizeSupabaseProduct, productColumns } from "@/lib/products";
@@ -84,6 +85,8 @@ async function getAdminData() {
     throw new Error(clicksResult.error.message);
   }
 
+  const products = (productsResult.data || []).map((product) => normalizeSupabaseProduct(product));
+  const productsById = new Map(products.map((product) => [product.id, product]));
   const clickMap = new Map<string, ClickSummary>();
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   let clicksLast7Days = 0;
@@ -96,24 +99,32 @@ async function getAdminData() {
     }
 
     const createdAt = click.created_at ? new Date(String(click.created_at)).getTime() : 0;
+    const isRecentClick = createdAt >= sevenDaysAgo;
 
-    if (createdAt >= sevenDaysAgo) {
+    if (isRecentClick) {
       clicksLast7Days += 1;
     }
 
-    const product = Array.isArray(click.products) ? click.products[0] : click.products;
-    const title = product && "title" in product ? String(product.title) : "Produto removido";
-    const source: ProductSource = click.source === "shopee" ? "shopee" : "mercadolivre";
+    const joinedProduct = Array.isArray(click.products) ? click.products[0] : click.products;
+    const savedProduct = productsById.get(productId);
+    const title = savedProduct?.title || (joinedProduct && "title" in joinedProduct ? String(joinedProduct.title) : "Produto removido");
+    const source: ProductSource = savedProduct?.source || (click.source === "shopee" ? "shopee" : "mercadolivre");
     const current = clickMap.get(productId);
 
     if (current) {
       current.clicks += 1;
+      current.clicks_last_7_days += isRecentClick ? 1 : 0;
     } else {
-      clickMap.set(productId, { product_id: productId, title, source, clicks: 1 });
+      clickMap.set(productId, {
+        product_id: productId,
+        title,
+        source,
+        clicks: 1,
+        clicks_last_7_days: isRecentClick ? 1 : 0,
+        is_featured: Boolean(savedProduct?.is_featured),
+      });
     }
   }
-
-  const products = (productsResult.data || []).map((product) => normalizeSupabaseProduct(product));
 
   return {
     products,
@@ -135,7 +146,6 @@ async function getAdminData() {
       .slice(0, 10),
   };
 }
-
 function getSingleParam(params: Record<string, string | string[] | undefined>, key: string) {
   const value = params[key];
   return Array.isArray(value) ? value[0] : value;
@@ -265,6 +275,7 @@ function ProductFields({ product }: { product?: AffiliateProduct }) {
         Link afiliado oficial
         <input name="affiliate_url" defaultValue={product?.affiliate_url || ""} placeholder="Cole aqui o link gerado no painel de afiliados" className="mt-1 w-full border-0 bg-transparent p-0 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none placeholder:text-blue-400" />
       </label>
+      <ShopeeAffiliateWarning />
       <input name="currency" defaultValue={product?.currency || "BRL"} placeholder="Moeda" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
       <input name="rating" type="number" step="0.1" min="0" max="5" defaultValue={product?.rating ?? ""} placeholder="Nota" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
       <input name="reviews_count" type="number" min="0" defaultValue={product?.reviews_count ?? ""} placeholder="Reviews" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
@@ -641,15 +652,46 @@ export default async function AdminPage({
               <p className="text-sm text-slate-500">Nenhum clique registrado ainda.</p>
             ) : (
               <ol className="space-y-3">
-                {data.clickSummaries.map((item) => (
-                  <li key={item.product_id} className="flex items-center justify-between gap-4 border-b border-slate-100 pb-3 last:border-0 last:pb-0">
-                    <div>
-                      <p className="font-bold text-slate-900">{item.title}</p>
-                      <p className="text-xs font-bold uppercase text-slate-400">{item.source}</p>
+                {data.clickSummaries.map((item, index) => (
+                  <li key={item.product_id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-slate-950 px-2 py-1 text-[10px] font-black text-white">#{index + 1}</span>
+                          <p className="font-bold text-slate-900">{item.title}</p>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-wide">
+                          <span className="rounded-full bg-white px-2 py-1 text-slate-500">{item.source}</span>
+                          <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-700">{item.clicks} totais</span>
+                          <span className="rounded-full bg-green-50 px-2 py-1 text-green-700">{item.clicks_last_7_days} em 7 dias</span>
+                          {item.is_featured ? <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">Destacado</span> : null}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 lg:justify-end">
+                        <Link
+                          href={`/produto/${item.product_id}`}
+                          target="_blank"
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-100"
+                        >
+                          Abrir produto
+                        </Link>
+                        <CopyProductLinkButton
+                          productId={item.product_id}
+                          label="Copiar link"
+                          className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black uppercase text-blue-700 hover:bg-blue-50"
+                        />
+                        {item.is_featured ? null : (
+                          <form action={toggleProductFeatured}>
+                            <input type="hidden" name="id" value={item.product_id} />
+                            <input type="hidden" name="is_featured" value="false" />
+                            <button className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black uppercase text-amber-700 hover:bg-amber-100">
+                              Destacar
+                            </button>
+                          </form>
+                        )}
+                      </div>
                     </div>
-                    <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-black text-white">
-                      {item.clicks} cliques
-                    </span>
                   </li>
                 ))}
               </ol>
