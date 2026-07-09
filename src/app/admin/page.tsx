@@ -399,6 +399,7 @@ function ProductFilterTabs({
           <Link
             key={filter.id}
             href={href}
+            scroll={false}
             className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-black uppercase tracking-wide transition ${
               isActive
                 ? "border-blue-600 bg-blue-600 text-white shadow-sm"
