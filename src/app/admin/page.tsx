@@ -12,6 +12,7 @@ import type { AffiliateProduct, ClickSummary, ProductSource, SearchRule } from "
 import {
   createManualProduct,
   importMercadoLivreProduct,
+  importBulkProducts,
   createSearchRule,
   loginAdmin,
   logoutAdmin,
@@ -355,6 +356,48 @@ function ImportMercadoLivreForm() {
         </p>
         <button className="rounded-xl bg-blue-600 px-5 py-3 text-xs font-black uppercase text-white">
           Importar dados do Mercado Livre
+        </button>
+      </div>
+    </form>
+  );
+}
+function BulkImportForm() {
+  const example = [
+    "shopee|Casa|Organizador de Cozinha|39,90|https://shopee.com.br/produto|https://s.shopee.com.br/link-afiliado|https://imagem.jpg|59,90|4.8|120|Loja Exemplo",
+    "mercadolivre|Suplementos|Creatina 300g|79,90|https://www.mercadolivre.com.br/produto|https://meli.la/link-afiliado|https://imagem.jpg|||250|Vendedor Exemplo",
+  ].join("\n");
+
+  return (
+    <form action={importBulkProducts} className="space-y-4 rounded-xl border border-green-100 bg-green-50 p-4">
+      <div className="grid gap-3 text-sm text-green-950 md:grid-cols-3">
+        <div>
+          <p className="text-xs font-black uppercase tracking-widest text-green-700">Importacao em lote</p>
+          <p className="mt-1 font-semibold">Cole uma linha por produto usando o separador | entre as colunas.</p>
+        </div>
+        <div>
+          <p className="text-xs font-black uppercase tracking-widest text-green-700">Colunas</p>
+          <p className="mt-1 font-medium">source | category | title | price | product_url | affiliate_url | image_url | old_price | rating | sold_count | seller_name</p>
+        </div>
+        <div>
+          <p className="text-xs font-black uppercase tracking-widest text-green-700">Duplicados</p>
+          <p className="mt-1 font-medium">Se repetir o mesmo link original, o produto e atualizado em vez de duplicado.</p>
+        </div>
+      </div>
+
+      <textarea
+        name="bulk_products"
+        required
+        rows={7}
+        placeholder={example}
+        className="w-full rounded-xl border border-green-200 bg-white px-3 py-3 font-mono text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-green-500"
+      />
+
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <p className="text-xs font-medium text-green-800">
+          Campos opcionais podem ficar vazios, mas mantenha os separadores. Limite: 200 linhas por importacao.
+        </p>
+        <button className="rounded-xl bg-green-600 px-5 py-3 text-xs font-black uppercase text-white">
+          Importar lote
         </button>
       </div>
     </form>
@@ -802,6 +845,7 @@ export default async function AdminPage({
             <p className="text-sm text-slate-500">Use links oficiais e preencha affiliate_url apenas com link afiliado valido.</p>
           </div>
           <ImportMercadoLivreForm />
+          <BulkImportForm />
           <ManualProductForm />
         </section>
 

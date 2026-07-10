@@ -75,6 +75,95 @@ function normalizeSource(value: string): ProductSource {
   return value === "shopee" ? "shopee" : "mercadolivre";
 }
 
+
+function parseBulkNumber(value: string | undefined) {
+  if (!value || value.trim() === "") {
+    return null;
+  }
+
+  const normalized = value
+    .replace(/R\$/gi, "")
+    .replace(/\s/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function hashText(value: string) {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+
+  return hash.toString(36);
+}
+
+function splitBulkLine(line: string) {
+  if (line.includes("\t")) {
+    return line.split("\t").map((cell) => cell.trim());
+  }
+
+  if (line.includes("|")) {
+    return line.split("|").map((cell) => cell.trim());
+  }
+
+  return line.split(";").map((cell) => cell.trim());
+}
+
+function parseBulkProductLine(line: string, lineNumber: number) {
+  const cells = splitBulkLine(line);
+  const [sourceRaw, category, title, priceRaw, productUrl, affiliateUrl, imageUrl, oldPriceRaw, ratingRaw, soldCountRaw, sellerName] = cells;
+
+  if (sourceRaw?.toLowerCase() === "source") {
+    return null;
+  }
+
+  if (!sourceRaw || !category || !title || !priceRaw || !productUrl) {
+    throw new Error(`Linha ${lineNumber}: preencha source, category, title, price e product_url.`);
+  }
+
+  const price = parseBulkNumber(priceRaw);
+
+  if (price === null || price < 0) {
+    throw new Error(`Linha ${lineNumber}: preco invalido.`);
+  }
+
+  const oldPrice = parseBulkNumber(oldPriceRaw);
+  const rating = parseBulkNumber(ratingRaw);
+  const soldCount = parseBulkNumber(soldCountRaw);
+  const source = normalizeSource(sourceRaw.toLowerCase());
+  const now = new Date().toISOString();
+
+  return {
+    source,
+    external_id: `bulk-${source}-${hashText(productUrl)}`,
+    title,
+    description: null,
+    category,
+    price,
+    old_price: oldPrice,
+    currency: "BRL",
+    image_url: imageUrl || null,
+    product_url: productUrl,
+    affiliate_url: affiliateUrl || null,
+    rating,
+    reviews_count: null,
+    sold_count: soldCount === null ? null : Math.trunc(soldCount),
+    seller_name: sellerName || null,
+    seller_reputation: null,
+    is_active: true,
+    is_featured: false,
+    score: calculateProductScore({
+      price,
+      rating,
+      sold_count: soldCount === null ? null : Math.trunc(soldCount),
+      seller_reputation: null,
+    }),
+    last_checked_at: now,
+  };
+}
 function getProductPayload(formData: FormData, fallbackExternalId?: string) {
   const source = normalizeSource(requiredString(formData, "source"));
   const price = requiredNumber(formData, "price");
@@ -202,6 +291,56 @@ export async function importMercadoLivreProduct(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/");
   redirectWithAdminMessage("notice_success", "Produto cadastrado com sucesso.");
+}
+
+export async function importBulkProducts(formData: FormData) {
+  await requireAdmin();
+
+  const rawProducts = requiredString(formData, "bulk_products");
+  const lines = rawProducts
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== "" && !line.startsWith("#"));
+
+  if (lines.length > 200) {
+    redirectWithAdminMessage("notice_error", "Importe no maximo 200 produtos por vez.");
+  }
+
+  const products = [];
+  const errors: string[] = [];
+
+  for (const [index, line] of lines.entries()) {
+    try {
+      const product = parseBulkProductLine(line, index + 1);
+
+      if (product) {
+        products.push(product);
+      }
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : `Linha ${index + 1}: erro desconhecido.`);
+    }
+  }
+
+  if (products.length === 0) {
+    const message = errors.length > 0 ? errors.slice(0, 3).join(" ") : "Nenhum produto valido encontrado.";
+    redirectWithAdminMessage("notice_error", message);
+  }
+
+  const supabase = createServiceSupabaseClient();
+  const { error } = await supabase.from("products").upsert(products, {
+    onConflict: "source,external_id",
+    ignoreDuplicates: false,
+  });
+
+  if (error) {
+    redirectWithAdminMessage("notice_error", `Nao consegui importar em lote: ${error.message}`);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+
+  const warning = errors.length > 0 ? ` ${errors.length} linha(s) ignorada(s): ${errors.slice(0, 2).join(" ")}` : "";
+  redirectWithAdminMessage("notice_success", `${products.length} produto(s) importado(s) com sucesso.${warning}`);
 }
 export async function createManualProduct(formData: FormData) {
   await requireAdmin();
