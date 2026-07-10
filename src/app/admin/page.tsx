@@ -151,7 +151,7 @@ function getSingleParam(params: Record<string, string | string[] | undefined>, k
   return Array.isArray(value) ? value[0] : value;
 }
 
-type ProductAdminFilter = "all" | "shopee" | "mercadolivre" | "without_affiliate" | "featured" | "inactive";
+type ProductAdminFilter = "all" | "shopee" | "mercadolivre" | "without_affiliate" | "featured" | "inactive" | "without_image" | "without_clicks" | "popular_without_featured";
 
 function getProductAdminFilter(value: string | string[] | undefined): ProductAdminFilter {
   const filter = Array.isArray(value) ? value[0] : value;
@@ -161,7 +161,10 @@ function getProductAdminFilter(value: string | string[] | undefined): ProductAdm
     filter === "mercadolivre" ||
     filter === "without_affiliate" ||
     filter === "featured" ||
-    filter === "inactive"
+    filter === "inactive" ||
+    filter === "without_image" ||
+    filter === "without_clicks" ||
+    filter === "popular_without_featured"
   ) {
     return filter;
   }
@@ -169,7 +172,11 @@ function getProductAdminFilter(value: string | string[] | undefined): ProductAdm
   return "all";
 }
 
-function filterAdminProducts(products: AffiliateProduct[], filter: ProductAdminFilter) {
+function filterAdminProducts(
+  products: AffiliateProduct[],
+  filter: ProductAdminFilter,
+  clickCountsByProduct: Record<string, number>,
+) {
   switch (filter) {
     case "shopee":
       return products.filter((product) => product.source === "shopee");
@@ -378,9 +385,11 @@ function AdminStats({ stats }: { stats: Awaited<ReturnType<typeof getAdminData>>
 function ProductFilterTabs({
   selectedFilter,
   products,
+  clickCountsByProduct,
 }: {
   selectedFilter: ProductAdminFilter;
   products: AffiliateProduct[];
+  clickCountsByProduct: Record<string, number>;
 }) {
   const filters: Array<{ id: ProductAdminFilter; label: string; count: number; tone?: "warning" }> = [
     { id: "all", label: "Todos", count: products.length },
@@ -398,6 +407,14 @@ function ProductFilterTabs({
     },
     { id: "featured", label: "Destaques", count: products.filter((product) => product.is_featured).length },
     { id: "inactive", label: "Inativos", count: products.filter((product) => !product.is_active).length },
+    { id: "without_image", label: "Sem imagem", count: products.filter((product) => !product.image_url).length, tone: "warning" },
+    { id: "without_clicks", label: "Sem cliques", count: products.filter((product) => !clickCountsByProduct[product.id]).length },
+    {
+      id: "popular_without_featured",
+      label: "Clicados sem destaque",
+      count: products.filter((product) => (clickCountsByProduct[product.id] || 0) > 0 && !product.is_featured).length,
+      tone: "warning",
+    },
   ];
 
   return (
@@ -428,6 +445,124 @@ function ProductFilterTabs({
         );
       })}
     </nav>
+  );
+}
+function CatalogMaintenancePanel({
+  products,
+  clickCountsByProduct,
+}: {
+  products: AffiliateProduct[];
+  clickCountsByProduct: Record<string, number>;
+}) {
+  const withoutAffiliate = products.filter((product) => !product.affiliate_url);
+  const withoutImage = products.filter((product) => !product.image_url);
+  const withoutClicks = products.filter((product) => !clickCountsByProduct[product.id]);
+  const popularWithoutFeatured = products.filter((product) => (clickCountsByProduct[product.id] || 0) > 0 && !product.is_featured);
+  const inactive = products.filter((product) => !product.is_active);
+  const mercadoLivreCount = products.filter((product) => product.source === "mercadolivre").length;
+  const shopeeCount = products.filter((product) => product.source === "shopee").length;
+  const target = 100;
+
+  const items: Array<{
+    label: string;
+    value: number;
+    href: string;
+    description: string;
+    tone?: "warning" | "danger" | "success";
+  }> = [
+    {
+      label: "Sem afiliado",
+      value: withoutAffiliate.length,
+      href: "/admin?product_filter=without_affiliate",
+      description: "Produtos que podem vender sem gerar comissao.",
+      tone: withoutAffiliate.length > 0 ? "danger" : "success",
+    },
+    {
+      label: "Sem imagem",
+      value: withoutImage.length,
+      href: "/admin?product_filter=without_image",
+      description: "Produtos com card fraco ou quebrado visualmente.",
+      tone: withoutImage.length > 0 ? "warning" : "success",
+    },
+    {
+      label: "Sem cliques",
+      value: withoutClicks.length,
+      href: "/admin?product_filter=without_clicks",
+      description: "Candidatos a trocar titulo, imagem, categoria ou desativar.",
+    },
+    {
+      label: "Clicados sem destaque",
+      value: popularWithoutFeatured.length,
+      href: "/admin?product_filter=popular_without_featured",
+      description: "Produtos com tracao que podem virar destaque.",
+      tone: popularWithoutFeatured.length > 0 ? "warning" : "success",
+    },
+    {
+      label: "Inativos",
+      value: inactive.length,
+      href: "/admin?product_filter=inactive",
+      description: "Itens fora do site publico aguardando decisao.",
+    },
+  ];
+
+  return (
+    <section className="space-y-4">
+      <div>
+        <h2 className="text-xl font-black uppercase">Manutencao do catalogo</h2>
+        <p className="text-sm text-slate-500">Fila pratica para revisar produtos antes das APIs oficiais.</p>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        {items.map((item) => (
+          <Link
+            key={item.label}
+            href={item.href}
+            scroll={false}
+            className={`rounded-xl border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+              item.tone === "danger"
+                ? "border-red-200 hover:border-red-300"
+                : item.tone === "warning"
+                  ? "border-amber-200 hover:border-amber-300"
+                  : item.tone === "success"
+                    ? "border-green-200 hover:border-green-300"
+                    : "border-slate-200 hover:border-blue-200"
+            }`}
+          >
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{item.label}</p>
+            <p className="mt-2 text-3xl font-black text-slate-950">{item.value}</p>
+            <p className="mt-2 text-xs font-medium leading-relaxed text-slate-500">{item.description}</p>
+          </Link>
+        ))}
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Meta Mercado Livre</p>
+              <p className="mt-1 text-sm font-bold text-slate-600">{mercadoLivreCount} de {target} produtos</p>
+            </div>
+            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">{Math.min(100, Math.round((mercadoLivreCount / target) * 100))}%</span>
+          </div>
+          <div className="mt-3 h-2 rounded-full bg-slate-100">
+            <div className="h-2 rounded-full bg-blue-600" style={{ width: `${Math.min(100, (mercadoLivreCount / target) * 100)}%` }} />
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Meta Shopee</p>
+              <p className="mt-1 text-sm font-bold text-slate-600">{shopeeCount} de {target} produtos</p>
+            </div>
+            <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-black text-orange-700">{Math.min(100, Math.round((shopeeCount / target) * 100))}%</span>
+          </div>
+          <div className="mt-3 h-2 rounded-full bg-slate-100">
+            <div className="h-2 rounded-full bg-orange-500" style={{ width: `${Math.min(100, (shopeeCount / target) * 100)}%` }} />
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 function ProductsTable({
@@ -570,7 +705,7 @@ export default async function AdminPage({
     throw error;
   }
 
-  const filteredProducts = filterAdminProducts(data.products, selectedProductFilter);
+  const filteredProducts = filterAdminProducts(data.products, selectedProductFilter, data.clickCountsByProduct);
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-8 text-slate-950">
@@ -634,7 +769,11 @@ export default async function AdminPage({
             <h2 className="text-xl font-black uppercase">Produtos encontrados</h2>
             <p className="text-sm text-slate-500">Filtre por fonte, afiliado, destaque ou status antes de editar.</p>
           </div>
-          <ProductFilterTabs selectedFilter={selectedProductFilter} products={data.products} />
+          <ProductFilterTabs
+            selectedFilter={selectedProductFilter}
+            products={data.products}
+            clickCountsByProduct={data.clickCountsByProduct}
+          />
           <ProductsTable
             products={filteredProducts}
             clickCountsByProduct={data.clickCountsByProduct}
