@@ -88,7 +88,7 @@ function fromLocalProduct(product: Product): AffiliateProduct {
   };
 }
 
-export async function getActiveProducts(): Promise<AffiliateProduct[]> {
+export async function getActiveProducts(limit = 1000): Promise<AffiliateProduct[]> {
   const fallbackProducts = localProducts.map(fromLocalProduct);
   const supabase = createPublicSupabaseClient();
 
@@ -104,7 +104,7 @@ export async function getActiveProducts(): Promise<AffiliateProduct[]> {
       .order("is_featured", { ascending: false })
       .order("score", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(96);
+      .limit(limit);
 
     if (error) {
       console.warn("Could not load Supabase products. Using local fallback.", error.message);
