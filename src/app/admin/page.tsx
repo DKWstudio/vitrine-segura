@@ -372,21 +372,40 @@ function BulkImportForm() {
       <div className="grid gap-3 text-sm text-green-950 md:grid-cols-3">
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-green-700">Importacao em lote</p>
-          <p className="mt-1 font-semibold">Cole uma linha por produto usando o separador | entre as colunas.</p>
+          <p className="mt-1 font-semibold">Cole linhas no formato | ou envie o CSV gerado pela Shopee.</p>
         </div>
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-green-700">Colunas</p>
-          <p className="mt-1 font-medium">source | category | title | price | product_url | affiliate_url | image_url | old_price | rating | sold_count | seller_name</p>
+          <p className="mt-1 font-medium">Manual: source | category | title | price | product_url | affiliate_url | image_url | old_price | rating | sold_count | seller_name</p>
         </div>
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-green-700">Duplicados</p>
-          <p className="mt-1 font-medium">Se repetir o mesmo link original, o produto e atualizado em vez de duplicado.</p>
+          <p className="mt-1 font-medium">CSV Shopee: usa Item Id, Item Name, Price, Sales, Nome da loja, Product Link e Offer Link automaticamente.</p>
         </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <label className="block rounded-xl border border-green-200 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-green-700 md:col-span-1">
+          Categoria padrao
+          <input
+            name="bulk_category"
+            defaultValue="Beleza"
+            className="mt-1 w-full border-0 p-0 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none"
+          />
+        </label>
+        <label className="block rounded-xl border border-green-200 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-green-700 md:col-span-2">
+          Arquivo CSV Shopee opcional
+          <input
+            name="bulk_file"
+            type="file"
+            accept=".csv,text/csv"
+            className="mt-1 w-full text-sm font-medium normal-case tracking-normal text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-green-600 file:px-3 file:py-2 file:text-xs file:font-black file:uppercase file:text-white"
+          />
+        </label>
       </div>
 
       <textarea
         name="bulk_products"
-        required
         rows={7}
         placeholder={example}
         className="w-full rounded-xl border border-green-200 bg-white px-3 py-3 font-mono text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-green-500"
@@ -394,7 +413,7 @@ function BulkImportForm() {
 
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <p className="text-xs font-medium text-green-800">
-          Campos opcionais podem ficar vazios, mas mantenha os separadores. Limite: 200 linhas por importacao.
+          Voce pode enviar o CSV da Shopee ou colar linhas manualmente. No CSV, a imagem nao vem no arquivo e pode ser completada depois. Limite: 200 linhas por importacao.
         </p>
         <button className="rounded-xl bg-green-600 px-5 py-3 text-xs font-black uppercase text-white">
           Importar lote

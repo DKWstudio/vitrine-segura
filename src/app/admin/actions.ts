@@ -111,6 +111,105 @@ function splitBulkLine(line: string) {
 
   return line.split(";").map((cell) => cell.trim());
 }
+function parseCsvLine(line: string) {
+  const cells: string[] = [];
+  let current = "";
+  let insideQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const nextChar = line[index + 1];
+
+    if (char === '"' && insideQuotes && nextChar === '"') {
+      current += '"';
+      index += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      insideQuotes = !insideQuotes;
+      continue;
+    }
+
+    if (char === "," && !insideQuotes) {
+      cells.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  cells.push(current.trim());
+  return cells;
+}
+
+function parseShopeeSales(value: string | undefined) {
+  if (!value || value.trim() === "") {
+    return null;
+  }
+
+  const normalized = value.toLowerCase().replace("+", "").trim();
+
+  if (normalized.includes("mil")) {
+    const numberPart = normalized.replace("mil", "").replace(/\./g, "").replace(",", ".");
+    const parsed = Number(numberPart || "1");
+    return Number.isFinite(parsed) ? Math.trunc(parsed * 1000) : null;
+  }
+
+  const parsed = Number(normalized.replace(/\./g, "").replace(",", "."));
+  return Number.isFinite(parsed) ? Math.trunc(parsed) : null;
+}
+
+function isShopeeCsvHeader(line: string) {
+  const normalized = line.toLowerCase();
+  return normalized.includes("item id") && normalized.includes("offer link") && normalized.includes("product link");
+}
+
+function parseShopeeCsvProductLine(line: string, lineNumber: number, category: string) {
+  const [itemId, itemName, priceRaw, salesRaw, storeName, , , productLink, offerLink] = parseCsvLine(line);
+
+  if (!itemId || !itemName || !priceRaw || !productLink) {
+    throw new Error(`Linha ${lineNumber}: CSV Shopee sem item, nome, preco ou link do produto.`);
+  }
+
+  const price = parseBulkNumber(priceRaw);
+
+  if (price === null || price < 0) {
+    throw new Error(`Linha ${lineNumber}: preco invalido no CSV Shopee.`);
+  }
+
+  const soldCount = parseShopeeSales(salesRaw);
+  const now = new Date().toISOString();
+
+  return {
+    source: "shopee" as ProductSource,
+    external_id: `shopee-${itemId}`,
+    title: itemName,
+    description: null,
+    category,
+    price,
+    old_price: null,
+    currency: "BRL",
+    image_url: null,
+    product_url: productLink,
+    affiliate_url: offerLink || null,
+    rating: null,
+    reviews_count: null,
+    sold_count: soldCount,
+    seller_name: storeName || null,
+    seller_reputation: null,
+    is_active: true,
+    is_featured: false,
+    score: calculateProductScore({
+      price,
+      rating: null,
+      sold_count: soldCount,
+      seller_reputation: null,
+    }),
+    last_checked_at: now,
+  };
+}
 
 function parseBulkProductLine(line: string, lineNumber: number) {
   const cells = splitBulkLine(line);
@@ -296,7 +395,10 @@ export async function importMercadoLivreProduct(formData: FormData) {
 export async function importBulkProducts(formData: FormData) {
   await requireAdmin();
 
-  const rawProducts = requiredString(formData, "bulk_products");
+  const file = formData.get("bulk_file");
+  const fileText = file instanceof File && file.size > 0 ? await file.text() : null;
+  const rawProducts = fileText || optionalString(formData, "bulk_products") || "";
+  const defaultCategory = optionalString(formData, "bulk_category") || "Shopee";
   const lines = rawProducts
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -309,9 +411,17 @@ export async function importBulkProducts(formData: FormData) {
   const products = [];
   const errors: string[] = [];
 
+  const isShopeeCsv = lines.some((line) => isShopeeCsvHeader(line));
+
   for (const [index, line] of lines.entries()) {
     try {
-      const product = parseBulkProductLine(line, index + 1);
+      if (isShopeeCsvHeader(line)) {
+        continue;
+      }
+
+      const product = isShopeeCsv
+        ? parseShopeeCsvProductLine(line, index + 1, defaultCategory)
+        : parseBulkProductLine(line, index + 1);
 
       if (product) {
         products.push(product);
