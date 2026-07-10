@@ -1,4 +1,4 @@
-﻿import { products as localProducts } from "@/data/products";
+import { products as localProducts } from "@/data/products";
 import { createPublicSupabaseClient } from "@/lib/supabase/client";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 import type { AffiliateProduct, Product } from "@/types/product";
@@ -125,8 +125,34 @@ export async function getActiveProducts(): Promise<AffiliateProduct[]> {
   }
 }
 export async function getActiveProductById(id: string): Promise<AffiliateProduct | null> {
-  const products = await getActiveProducts();
-  return products.find((product) => product.id === id) || null;
+  const supabase = createPublicSupabaseClient();
+
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select(productColumns)
+        .eq("id", id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (error) {
+        console.warn("Could not load Supabase product by id.", error.message);
+      }
+
+      if (data) {
+        return normalizeSupabaseProduct(data);
+      }
+    } catch (error) {
+      console.warn(
+        "Unexpected product by id loading error.",
+        error instanceof Error ? error.message : "Unknown error",
+      );
+    }
+  }
+
+  const fallbackProducts = localProducts.map(fromLocalProduct);
+  return fallbackProducts.find((product) => product.id === id) || null;
 }
 
 export async function getRelatedProducts(product: AffiliateProduct, limit = 4): Promise<AffiliateProduct[]> {
