@@ -318,6 +318,26 @@ export async function updateAffiliateUrl(formData: FormData) {
   revalidatePath("/");
 }
 
+
+export async function markProductReviewed(formData: FormData) {
+  await requireAdmin();
+
+  const id = requiredString(formData, "id");
+  const supabase = createServiceSupabaseClient();
+
+  const { error } = await supabase
+    .from("products")
+    .update({ last_checked_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  redirectWithAdminMessage("notice_success", "Produto marcado como revisado.");
+}
 export async function createSearchRule(formData: FormData) {
   await requireAdmin();
 

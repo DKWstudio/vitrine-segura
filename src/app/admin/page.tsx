@@ -15,6 +15,7 @@ import {
   createSearchRule,
   loginAdmin,
   logoutAdmin,
+  markProductReviewed,
   toggleProductActive,
   toggleProductFeatured,
   updateAffiliateUrl,
@@ -64,8 +65,8 @@ async function getAdminData() {
       .from("products")
       .select(productColumns)
       .order("created_at", { ascending: false })
-      .limit(80),
-    supabase.from("search_rules").select("*").order("created_at", { ascending: false }).limit(80),
+      .limit(500),
+    supabase.from("search_rules").select("*").order("created_at", { ascending: false }).limit(500),
     supabase
       .from("clicks")
       .select("product_id, source, created_at, products(title)")
@@ -151,7 +152,34 @@ function getSingleParam(params: Record<string, string | string[] | undefined>, k
   return Array.isArray(value) ? value[0] : value;
 }
 
-type ProductAdminFilter = "all" | "shopee" | "mercadolivre" | "without_affiliate" | "featured" | "inactive" | "without_image" | "without_clicks" | "popular_without_featured";
+const staleReviewDays = 30;
+const staleReviewMs = staleReviewDays * 24 * 60 * 60 * 1000;
+
+function getProductReviewTime(product: AffiliateProduct) {
+  const reviewedAt = product.last_checked_at || product.created_at;
+  const timestamp = reviewedAt ? new Date(reviewedAt).getTime() : 0;
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function needsCatalogReview(product: AffiliateProduct) {
+  return getProductReviewTime(product) < Date.now() - staleReviewMs;
+}
+
+function formatShortDate(value: string | null) {
+  if (!value) {
+    return "Sem revisao";
+  }
+
+  const date = new Date(value);
+
+  if (!Number.isFinite(date.getTime())) {
+    return "Sem revisao";
+  }
+
+  return date.toLocaleDateString("pt-BR");
+}
+
+type ProductAdminFilter = "all" | "shopee" | "mercadolivre" | "without_affiliate" | "featured" | "inactive" | "without_image" | "without_clicks" | "popular_without_featured" | "stale_review";
 
 function getProductAdminFilter(value: string | string[] | undefined): ProductAdminFilter {
   const filter = Array.isArray(value) ? value[0] : value;
@@ -164,7 +192,8 @@ function getProductAdminFilter(value: string | string[] | undefined): ProductAdm
     filter === "inactive" ||
     filter === "without_image" ||
     filter === "without_clicks" ||
-    filter === "popular_without_featured"
+    filter === "popular_without_featured" ||
+    filter === "stale_review"
   ) {
     return filter;
   }
@@ -188,6 +217,14 @@ function filterAdminProducts(
       return products.filter((product) => product.is_featured);
     case "inactive":
       return products.filter((product) => !product.is_active);
+    case "without_image":
+      return products.filter((product) => !product.image_url);
+    case "without_clicks":
+      return products.filter((product) => !clickCountsByProduct[product.id]);
+    case "popular_without_featured":
+      return products.filter((product) => (clickCountsByProduct[product.id] || 0) > 0 && !product.is_featured);
+    case "stale_review":
+      return products.filter((product) => needsCatalogReview(product));
     default:
       return products;
   }
@@ -407,6 +444,7 @@ function ProductFilterTabs({
     },
     { id: "featured", label: "Destaques", count: products.filter((product) => product.is_featured).length },
     { id: "inactive", label: "Inativos", count: products.filter((product) => !product.is_active).length },
+    { id: "stale_review", label: "Revisar 30 dias", count: products.filter((product) => needsCatalogReview(product)).length, tone: "warning" },
     { id: "without_image", label: "Sem imagem", count: products.filter((product) => !product.image_url).length, tone: "warning" },
     { id: "without_clicks", label: "Sem cliques", count: products.filter((product) => !clickCountsByProduct[product.id]).length },
     {
@@ -459,6 +497,7 @@ function CatalogMaintenancePanel({
   const withoutClicks = products.filter((product) => !clickCountsByProduct[product.id]);
   const popularWithoutFeatured = products.filter((product) => (clickCountsByProduct[product.id] || 0) > 0 && !product.is_featured);
   const inactive = products.filter((product) => !product.is_active);
+  const staleReview = products.filter((product) => needsCatalogReview(product));
   const mercadoLivreCount = products.filter((product) => product.source === "mercadolivre").length;
   const shopeeCount = products.filter((product) => product.source === "shopee").length;
   const target = 100;
@@ -503,6 +542,13 @@ function CatalogMaintenancePanel({
       href: "/admin?product_filter=inactive",
       description: "Itens fora do site publico aguardando decisao.",
     },
+    {
+      label: "Revisar 30 dias",
+      value: staleReview.length,
+      href: "/admin?product_filter=stale_review",
+      description: "Produtos sem conferencia recente de preco, link e imagem.",
+      tone: staleReview.length > 0 ? "warning" : "success",
+    },
   ];
 
   return (
@@ -512,7 +558,7 @@ function CatalogMaintenancePanel({
         <p className="text-sm text-slate-500">Fila pratica para revisar produtos antes das APIs oficiais.</p>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
         {items.map((item) => (
           <Link
             key={item.label}
@@ -616,6 +662,8 @@ function ProductsTable({
                   <span className={product.is_active ? "text-green-700" : "text-red-700"}>{product.is_active ? "Ativo" : "Inativo"}</span>
                   <br />
                   <span className={product.is_featured ? "text-amber-600" : "text-slate-400"}>{product.is_featured ? "Destaque" : "Normal"}</span>
+                  <br />
+                  <span className={needsCatalogReview(product) ? "text-amber-600" : "text-slate-400"}>Rev. {formatShortDate(product.last_checked_at || product.created_at)}</span>
                 </td>
                 <td className="p-3">
                   <form action={updateAffiliateUrl} className="flex min-w-72 gap-2">
@@ -637,6 +685,12 @@ function ProductsTable({
                       <input type="hidden" name="is_active" value={String(product.is_active)} />
                       <button className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-black uppercase text-slate-700">
                         {product.is_active ? "Desativar" : "Ativar"}
+                      </button>
+                    </form>
+                    <form action={markProductReviewed}>
+                      <input type="hidden" name="id" value={product.id} />
+                      <button className="w-full rounded-lg border border-blue-200 px-3 py-2 text-xs font-black uppercase text-blue-700">
+                        Marcar revisado
                       </button>
                     </form>
                     <form action={toggleProductFeatured}>
@@ -736,6 +790,11 @@ export default async function AdminPage({
         <AdminNotice key={noticeError || noticeSuccess || "admin-notice"} error={noticeError} success={noticeSuccess} />
 
         <AdminStats stats={data.stats} />
+
+        <CatalogMaintenancePanel
+          products={data.products}
+          clickCountsByProduct={data.clickCountsByProduct}
+        />
 
         <section className="space-y-4">
           <div>
