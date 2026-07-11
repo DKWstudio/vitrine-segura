@@ -90,6 +90,7 @@ export async function GET(request: NextRequest) {
   let catalogDetailProbe: Awaited<ReturnType<typeof fetchStatus>> | null = null;
   let catalogItemsProbe: Awaited<ReturnType<typeof fetchStatus>> | null = null;
   let catalogItemsSearchProbe: Awaited<ReturnType<typeof fetchStatus>> | null = null;
+  let catalogOfferProbes: Array<{ catalog_id: string; detail: Awaited<ReturnType<typeof fetchStatus>>; items: Awaited<ReturnType<typeof fetchStatus>>; search: Awaited<ReturnType<typeof fetchStatus>> }> = [];
   let adapterTest:
     | { ok: true; count: number; sample: Array<{ external_id: string; title: string; price: number; product_url: string; image_url: string | null }> }
     | { ok: false; error: string };
@@ -123,17 +124,28 @@ export async function GET(request: NextRequest) {
         });
         const catalogBody = await catalogResponse.text();
         const catalogPayload = JSON.parse(catalogBody) as { results?: Array<{ id?: string; catalog_product_id?: string }> };
-        const catalogId = catalogPayload.results?.[0]?.catalog_product_id || catalogPayload.results?.[0]?.id;
+        const catalogIds = (catalogPayload.results || [])
+          .map((product) => product.catalog_product_id || product.id)
+          .filter((catalogId): catalogId is string => Boolean(catalogId))
+          .slice(0, 3);
 
-        if (catalogId) {
-          catalogDetailProbe = await fetchStatus(`https://api.mercadolibre.com/products/${catalogId}`, refreshedToken, true, 3000);
-          catalogItemsProbe = await fetchStatus(`https://api.mercadolibre.com/products/${catalogId}/items?limit=3`, refreshedToken, true, 3000);
-          catalogItemsSearchProbe = await fetchStatus(`https://api.mercadolibre.com/sites/MLB/search?catalog_product_id=${encodeURIComponent(catalogId)}&limit=3`, refreshedToken, true, 3000);
-        }
+        catalogOfferProbes = await Promise.all(
+          catalogIds.map(async (catalogId) => ({
+            catalog_id: catalogId,
+            detail: await fetchStatus(`https://api.mercadolibre.com/products/${catalogId}`, refreshedToken, true, 1800),
+            items: await fetchStatus(`https://api.mercadolibre.com/products/${catalogId}/items?limit=3`, refreshedToken, true, 1800),
+            search: await fetchStatus(`https://api.mercadolibre.com/sites/MLB/search?catalog_product_id=${encodeURIComponent(catalogId)}&limit=3`, refreshedToken, true, 1800),
+          })),
+        );
+
+        catalogDetailProbe = catalogOfferProbes[0]?.detail || null;
+        catalogItemsProbe = catalogOfferProbes[0]?.items || null;
+        catalogItemsSearchProbe = catalogOfferProbes[0]?.search || null;
       } catch {
         catalogDetailProbe = null;
         catalogItemsProbe = null;
         catalogItemsSearchProbe = null;
+        catalogOfferProbes = [];
       }
     }
   } catch (error) {
@@ -173,7 +185,7 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({
-    adapter_version: "ml-catalog-fallback-v6",
+    adapter_version: "ml-catalog-fallback-v7",
     env: status,
     query,
     users_me: usersMe,
@@ -187,6 +199,7 @@ export async function GET(request: NextRequest) {
     catalog_detail_probe: catalogDetailProbe,
     catalog_items_probe: catalogItemsProbe,
     catalog_items_search_probe: catalogItemsSearchProbe,
+    catalog_offer_probes: catalogOfferProbes,
     adapter_test: adapterTest,
     interpretation: {
       users_me_200_search_403:

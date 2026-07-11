@@ -41,6 +41,11 @@ interface MercadoLivreCatalogSearchResponse {
   results?: MercadoLivreCatalogProduct[];
 }
 
+interface MercadoLivreCatalogItemsResponse {
+  results?: MercadoLivreItem[];
+  items?: MercadoLivreItem[];
+}
+
 interface MercadoLivreCatalogProduct {
   id?: string;
   catalog_product_id?: string;
@@ -272,6 +277,38 @@ async function searchMarketplaceProducts(rule: ProductSearchRule) {
   return { ok: true as const, status: response.status, body: "", accessToken, refreshedToken, products };
 }
 
+function findCatalogItemWinner(payload: unknown): MercadoLivreItem | null {
+  if (Array.isArray(payload)) {
+    return payload.find((item): item is MercadoLivreItem => Boolean(item?.id && item?.permalink && typeof item?.price === "number")) || null;
+  }
+
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+
+  const response = payload as MercadoLivreCatalogItemsResponse;
+  const items = response.results || response.items || [];
+
+  return items.find((item) => Boolean(item.id && item.permalink && typeof item.price === "number")) || null;
+}
+
+async function getCatalogItemWinner(catalogId: string, accessToken?: string) {
+  try {
+    const response = await requestMercadoLivre(`https://api.mercadolibre.com/products/${catalogId}/items?limit=5`, accessToken);
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return findCatalogItemWinner(await response.json());
+  } catch (error) {
+    console.warn(
+      `Could not load Mercado Livre catalog items ${catalogId}: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
+    return null;
+  }
+}
+
 async function getCatalogProductDetail(product: MercadoLivreCatalogProduct, accessToken?: string) {
   const catalogId = product.catalog_product_id || product.id;
 
@@ -279,26 +316,29 @@ async function getCatalogProductDetail(product: MercadoLivreCatalogProduct, acce
     return product;
   }
 
+  let detail = product;
+
   try {
     const response = await requestMercadoLivre(`https://api.mercadolibre.com/products/${catalogId}`, accessToken);
 
-    if (!response.ok) {
-      return product;
+    if (response.ok) {
+      detail = {
+        ...product,
+        ...((await response.json()) as MercadoLivreCatalogProduct),
+      };
     }
-
-    const detail = (await response.json()) as MercadoLivreCatalogProduct;
-
-    return {
-      ...product,
-      ...detail,
-      buy_box_winner: detail.buy_box_winner || product.buy_box_winner || null,
-    };
   } catch (error) {
     console.warn(
       `Could not load Mercado Livre catalog detail ${catalogId}: ${error instanceof Error ? error.message : "Unknown error"}`,
     );
-    return product;
   }
+
+  const winner = detail.buy_box_winner || product.buy_box_winner || (await getCatalogItemWinner(catalogId, accessToken));
+
+  return {
+    ...detail,
+    buy_box_winner: winner || null,
+  };
 }
 async function searchCatalogProducts(rule: ProductSearchRule, tokenHint?: string | null) {
   const params = new URLSearchParams({
