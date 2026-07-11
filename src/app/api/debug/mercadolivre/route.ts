@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { searchMercadoLivreProducts } from "@/lib/adapters/mercadolivre";
 import {
   getMercadoLivreAccessToken,
   getMercadoLivreAuthStatus,
@@ -86,6 +87,9 @@ export async function GET(request: NextRequest) {
       catalog_search: Awaited<ReturnType<typeof fetchStatus>> | null;
     };
   } | null = null;
+  let adapterTest:
+    | { ok: true; count: number; sample: Array<{ external_id: string; title: string; price: number; product_url: string; image_url: string | null }> }
+    | { ok: false; error: string };
 
   try {
     const refreshed = await refreshMercadoLivreAccessToken();
@@ -114,7 +118,37 @@ export async function GET(request: NextRequest) {
     };
   }
 
+  try {
+    const products = await searchMercadoLivreProducts({
+      source: "mercadolivre",
+      category: "Debug",
+      query,
+      min_price: null,
+      max_price: null,
+      min_rating: null,
+      max_results: 3,
+    });
+
+    adapterTest = {
+      ok: true,
+      count: products.length,
+      sample: products.slice(0, 3).map((product) => ({
+        external_id: product.external_id,
+        title: product.title,
+        price: product.price,
+        product_url: product.product_url,
+        image_url: product.image_url,
+      })),
+    };
+  } catch (error) {
+    adapterTest = {
+      ok: false,
+      error: error instanceof Error ? error.message.slice(0, 1200) : "Unknown adapter error",
+    };
+  }
+
   return NextResponse.json({
+    adapter_version: "ml-catalog-fallback-v4",
     env: status,
     query,
     users_me: usersMe,
@@ -125,6 +159,7 @@ export async function GET(request: NextRequest) {
     marketplace_search: marketplaceSearch,
     catalog_search: catalogSearch,
     refresh,
+    adapter_test: adapterTest,
     interpretation: {
       users_me_200_search_403:
         "OAuth esta valido, mas a app/conta/IP nao tem permissao para os endpoints de busca testados.",
