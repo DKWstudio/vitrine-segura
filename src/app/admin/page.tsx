@@ -362,25 +362,20 @@ function ImportMercadoLivreForm() {
   );
 }
 function BulkImportForm() {
-  const example = [
-    "shopee|Casa|Organizador de Cozinha|39,90|https://shopee.com.br/produto|https://s.shopee.com.br/link-afiliado|https://imagem.jpg|59,90|4.8|120|Loja Exemplo",
-    "mercadolivre|Suplementos|Creatina 300g|79,90|https://www.mercadolivre.com.br/produto|https://meli.la/link-afiliado|https://imagem.jpg|||250|Vendedor Exemplo",
-  ].join("\n");
-
   return (
     <form action={importBulkProducts} className="space-y-4 rounded-xl border border-green-100 bg-green-50 p-4">
       <div className="grid gap-3 text-sm text-green-950 md:grid-cols-3">
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-green-700">Importacao em lote</p>
-          <p className="mt-1 font-semibold">Cole linhas no formato | ou envie CSV da Shopee/Mercado Livre.</p>
+          <p className="mt-1 font-semibold">Envie um CSV da Shopee ou um CSV Mercado Livre preparado.</p>
         </div>
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-green-700">Colunas</p>
-          <p className="mt-1 font-medium">Manual: source | category | title | price | product_url | affiliate_url | image_url | old_price | rating | sold_count | seller_name</p>
+          <p className="mt-1 font-medium">Mercado Livre: title, category, price, product_url, affiliate_url, image_url, old_price, rating, sold_count, seller_name</p>
         </div>
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-green-700">Duplicados</p>
-          <p className="mt-1 font-medium">CSV Shopee e Mercado Livre: detecta cabecalho e mapeia as colunas automaticamente.</p>
+          <p className="mt-1 font-medium">CSV Shopee: usa o arquivo oficial. CSV Mercado Livre: usa a planilha no modelo acima.</p>
         </div>
       </div>
 
@@ -394,7 +389,7 @@ function BulkImportForm() {
           />
         </label>
         <label className="block rounded-xl border border-green-200 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-green-700 md:col-span-2">
-          Arquivo CSV opcional
+          Arquivo CSV
           <input
             name="bulk_file"
             type="file"
@@ -404,16 +399,9 @@ function BulkImportForm() {
         </label>
       </div>
 
-      <textarea
-        name="bulk_products"
-        rows={7}
-        placeholder={example}
-        className="w-full rounded-xl border border-green-200 bg-white px-3 py-3 font-mono text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-green-500"
-      />
-
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <p className="text-xs font-medium text-green-800">
-          Voce pode enviar CSV Shopee, CSV Mercado Livre ou colar linhas manualmente. Modelo Mercado Livre: title,category,price,product_url,affiliate_url,image_url,old_price,rating,sold_count,seller_name. Limite: 200 linhas.
+          Envie CSV Shopee ou CSV Mercado Livre. Para Mercado Livre, monte uma planilha com o cabecalho indicado acima. Limite: 200 linhas por importacao.
         </p>
         <button className="rounded-xl bg-green-600 px-5 py-3 text-xs font-black uppercase text-white">
           Importar lote
