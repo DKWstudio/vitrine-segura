@@ -9,8 +9,10 @@ import {
   isAdminAuthenticated,
   isValidAdminPassword,
 } from "@/lib/admin/auth";
+import { searchProductsByRule } from "@/lib/adapters";
 import { calculateProductScore } from "@/lib/adapters/normalization";
 import { getMercadoLivreItemById, resolveMercadoLivreProductUrl } from "@/lib/mercadolivre/items";
+import { saveSearchedProducts } from "@/lib/search-products";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 import type { ProductSource } from "@/types/product";
 
@@ -759,6 +761,38 @@ export async function markProductReviewed(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/");
   redirectWithAdminMessage("notice_success", "Produto marcado como revisado.");
+}
+export async function searchProductsFromRule(formData: FormData) {
+  await requireAdmin();
+
+  const source = normalizeSource(requiredString(formData, "source"));
+  const category = requiredString(formData, "category");
+  const query = requiredString(formData, "query");
+  const maxResults = optionalNumber(formData.get("max_results")) ?? 20;
+  let saved = 0;
+
+  try {
+    const products = await searchProductsByRule({
+      source,
+      category,
+      query,
+      min_price: optionalNumber(formData.get("min_price")),
+      max_price: optionalNumber(formData.get("max_price")),
+      min_rating: optionalNumber(formData.get("min_rating")),
+      max_results: maxResults,
+    });
+    saved = await saveSearchedProducts(products);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Erro desconhecido";
+    redirectWithAdminMessage("notice_error", `Nao consegui buscar produtos: ${message}`);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  redirectWithAdminMessage(
+    "notice_success",
+    `${saved} produto(s) encontrado(s). Revise a fila Aguardando publicacao.`,
+  );
 }
 export async function createSearchRule(formData: FormData) {
   await requireAdmin();

@@ -19,6 +19,7 @@ import {
   logoutAdmin,
   markProductReviewed,
   publishSelectedProducts,
+  searchProductsFromRule,
   toggleProductActive,
   toggleProductFeatured,
   updateAffiliateUrl,
@@ -332,18 +333,24 @@ function RuleForm({ rule }: { rule?: SearchRule }) {
         <option value="shopee">Shopee</option>
       </select>
       <input name="category" required defaultValue={rule?.category || ""} placeholder="Categoria" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-2" />
-      <input name="query" required defaultValue={rule?.query || ""} placeholder="Busca" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-3" />
+      <input name="query" required defaultValue={rule?.query || ""} placeholder="Busca" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-2" />
       <input name="min_price" type="number" step="0.01" defaultValue={rule?.min_price ?? ""} placeholder="Min R$" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
       <input name="max_price" type="number" step="0.01" defaultValue={rule?.max_price ?? ""} placeholder="Max R$" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
       <input name="min_rating" type="number" step="0.1" min="0" max="5" defaultValue={rule?.min_rating ?? ""} placeholder="Aval." className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
       <input name="max_results" type="number" min="1" max="100" defaultValue={rule?.max_results ?? 20} className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
-      <div className="flex items-center justify-between gap-3 md:col-span-1">
+      <div className="flex flex-wrap items-center justify-end gap-2 md:col-span-2">
         {rule ? (
-          <label className="flex items-center gap-2 text-xs font-bold text-slate-600">
+          <label className="mr-auto flex items-center gap-2 text-xs font-bold text-slate-600">
             <input name="is_active" type="checkbox" defaultChecked={rule.is_active} />
             Ativa
           </label>
         ) : null}
+        <button
+          formAction={searchProductsFromRule}
+          className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-black uppercase text-blue-700"
+        >
+          Buscar
+        </button>
         <button className="rounded-lg bg-slate-950 px-4 py-2 text-xs font-black uppercase text-white">
           {rule ? "Salvar" : "Criar"}
         </button>
