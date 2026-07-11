@@ -153,6 +153,24 @@ function getSingleParam(params: Record<string, string | string[] | undefined>, k
   return Array.isArray(value) ? value[0] : value;
 }
 
+function getTextParam(params: Record<string, string | string[] | undefined>, key: string) {
+  return (getSingleParam(params, key) || "").trim();
+}
+
+function getCategoryOptions(products: AffiliateProduct[]) {
+  return Array.from(new Set(products.map((product) => product.category.trim()).filter(Boolean))).sort((a, b) =>
+    a.localeCompare(b, "pt-BR"),
+  );
+}
+
+function normalizeSearchText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
 const staleReviewDays = 30;
 const staleReviewMs = staleReviewDays * 24 * 60 * 60 * 1000;
 
@@ -206,29 +224,57 @@ function filterAdminProducts(
   products: AffiliateProduct[],
   filter: ProductAdminFilter,
   clickCountsByProduct: Record<string, number>,
+  categoryFilter: string,
+  searchQuery: string,
 ) {
+  let filteredProducts: AffiliateProduct[];
+
   switch (filter) {
     case "shopee":
-      return products.filter((product) => product.source === "shopee");
+      filteredProducts = products.filter((product) => product.source === "shopee");
+      break;
     case "mercadolivre":
-      return products.filter((product) => product.source === "mercadolivre");
+      filteredProducts = products.filter((product) => product.source === "mercadolivre");
+      break;
     case "without_affiliate":
-      return products.filter((product) => !product.affiliate_url);
+      filteredProducts = products.filter((product) => !product.affiliate_url);
+      break;
     case "featured":
-      return products.filter((product) => product.is_featured);
+      filteredProducts = products.filter((product) => product.is_featured);
+      break;
     case "inactive":
-      return products.filter((product) => !product.is_active);
+      filteredProducts = products.filter((product) => !product.is_active);
+      break;
     case "without_image":
-      return products.filter((product) => !product.image_url);
+      filteredProducts = products.filter((product) => !product.image_url);
+      break;
     case "without_clicks":
-      return products.filter((product) => !clickCountsByProduct[product.id]);
+      filteredProducts = products.filter((product) => !clickCountsByProduct[product.id]);
+      break;
     case "popular_without_featured":
-      return products.filter((product) => (clickCountsByProduct[product.id] || 0) > 0 && !product.is_featured);
+      filteredProducts = products.filter((product) => (clickCountsByProduct[product.id] || 0) > 0 && !product.is_featured);
+      break;
     case "stale_review":
-      return products.filter((product) => needsCatalogReview(product));
+      filteredProducts = products.filter((product) => needsCatalogReview(product));
+      break;
     default:
-      return products;
+      filteredProducts = products;
   }
+
+  const normalizedCategory = categoryFilter.trim();
+  const normalizedQuery = normalizeSearchText(searchQuery);
+
+  if (normalizedCategory) {
+    filteredProducts = filteredProducts.filter((product) => product.category === normalizedCategory);
+  }
+
+  if (normalizedQuery) {
+    filteredProducts = filteredProducts.filter((product) =>
+      normalizeSearchText(`${product.title} ${product.external_id} ${product.seller_name || ""}`).includes(normalizedQuery),
+    );
+  }
+
+  return filteredProducts;
 }
 
 function LoginForm({ hasError }: { hasError: boolean }) {
@@ -307,7 +353,7 @@ function ProductFields({ product }: { product?: AffiliateProduct }) {
       </select>
       <input name="external_id" defaultValue={product?.external_id || ""} placeholder="ID externo opcional" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-2" />
       <input name="title" required defaultValue={product?.title || ""} placeholder="Titulo do produto" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-4" />
-      <input name="category" required defaultValue={product?.category || "Casa"} placeholder="Categoria" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-2" />
+      <input name="category" list="admin-category-options" required defaultValue={product?.category || "Casa"} placeholder="Categoria" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-2" />
       <input name="price" required type="number" step="0.01" min="0" defaultValue={product?.price ?? ""} placeholder="Preco" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
       <input name="old_price" type="number" step="0.01" min="0" defaultValue={product?.old_price ?? ""} placeholder="Preco antigo" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
       <textarea name="description" defaultValue={product?.description || ""} placeholder="Descricao curta" className="min-h-20 rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-12" />
@@ -343,7 +389,7 @@ function ImportMercadoLivreForm() {
   return (
     <form action={importMercadoLivreProduct} className="grid gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4 md:grid-cols-12">
       <input name="product_url" required placeholder="Cole aqui o link completo do produto Mercado Livre" className="rounded-lg border border-blue-200 px-3 py-2 text-sm md:col-span-5" />
-      <input name="category" required defaultValue="Casa" placeholder="Categoria" className="rounded-lg border border-blue-200 px-3 py-2 text-sm md:col-span-2" />
+      <input name="category" list="admin-category-options" required defaultValue="Casa" placeholder="Categoria" className="rounded-lg border border-blue-200 px-3 py-2 text-sm md:col-span-2" />
       <input name="affiliate_url" placeholder="URL afiliada oficial opcional" className="rounded-lg border border-blue-200 px-3 py-2 text-sm md:col-span-3" />
       <input name="rating" type="number" step="0.1" min="0" max="5" placeholder="Nota opcional" className="rounded-lg border border-blue-200 px-3 py-2 text-sm md:col-span-1" />
       <label className="flex items-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 md:col-span-1">
@@ -384,6 +430,7 @@ function BulkImportForm() {
           Categoria padrao
           <input
             name="bulk_category"
+            list="admin-category-options"
             defaultValue="Beleza"
             className="mt-1 w-full border-0 p-0 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none"
           />
@@ -473,10 +520,14 @@ function ProductFilterTabs({
   selectedFilter,
   products,
   clickCountsByProduct,
+  selectedCategory,
+  searchQuery,
 }: {
   selectedFilter: ProductAdminFilter;
   products: AffiliateProduct[];
   clickCountsByProduct: Record<string, number>;
+  selectedCategory: string;
+  searchQuery: string;
 }) {
   const filters: Array<{ id: ProductAdminFilter; label: string; count: number; tone?: "warning" }> = [
     { id: "all", label: "Todos", count: products.length },
@@ -509,7 +560,21 @@ function ProductFilterTabs({
     <nav className="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Filtros de produtos do admin">
       {filters.map((filter) => {
         const isActive = selectedFilter === filter.id;
-        const href = filter.id === "all" ? "/admin" : `/admin?product_filter=${filter.id}`;
+        const queryParams = new URLSearchParams();
+
+        if (filter.id !== "all") {
+          queryParams.set("product_filter", filter.id);
+        }
+
+        if (selectedCategory) {
+          queryParams.set("product_category", selectedCategory);
+        }
+
+        if (searchQuery) {
+          queryParams.set("product_query", searchQuery);
+        }
+
+        const href = queryParams.toString() ? `/admin?${queryParams.toString()}` : "/admin";
 
         return (
           <Link
@@ -533,6 +598,69 @@ function ProductFilterTabs({
         );
       })}
     </nav>
+  );
+}
+
+function ProductSearchFilters({
+  categories,
+  selectedFilter,
+  selectedCategory,
+  searchQuery,
+  filteredCount,
+}: {
+  categories: string[];
+  selectedFilter: ProductAdminFilter;
+  selectedCategory: string;
+  searchQuery: string;
+  filteredCount: number;
+}) {
+  const clearParams = new URLSearchParams();
+
+  if (selectedFilter !== "all") {
+    clearParams.set("product_filter", selectedFilter);
+  }
+
+  const clearHref = clearParams.toString() ? `/admin?${clearParams.toString()}` : "/admin";
+
+  return (
+    <form action="/admin" className="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:grid-cols-12">
+      {selectedFilter !== "all" ? <input type="hidden" name="product_filter" value={selectedFilter} /> : null}
+      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 md:col-span-4">
+        Categoria
+        <select
+          name="product_category"
+          defaultValue={selectedCategory}
+          className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold normal-case tracking-normal text-slate-900 outline-none focus:border-blue-300"
+        >
+          <option value="">Todas as categorias</option>
+          {categories.map((category) => (
+            <option key={category} value={category}>
+              {category}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 md:col-span-5">
+        Buscar por nome
+        <input
+          name="product_query"
+          defaultValue={searchQuery}
+          placeholder="Digite parte do titulo, vendedor ou ID"
+          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold normal-case tracking-normal text-slate-900 outline-none focus:border-blue-300"
+        />
+      </label>
+      <div className="flex flex-col gap-2 md:col-span-3 md:flex-row md:items-end md:justify-end">
+        <button className="rounded-lg bg-slate-950 px-4 py-2 text-xs font-black uppercase text-white">
+          Filtrar
+        </button>
+        <Link href={clearHref} scroll={false} className="rounded-lg border border-slate-200 px-4 py-2 text-center text-xs font-black uppercase text-slate-600 hover:bg-slate-50">
+          Limpar
+        </Link>
+      </div>
+      <p className="text-xs font-semibold text-slate-500 md:col-span-12">
+        {filteredCount} produto(s) encontrados nessa combinacao de filtros.
+      </p>
+    </form>
   );
 }
 function CatalogMaintenancePanel({
@@ -792,6 +920,8 @@ export default async function AdminPage({
   const noticeError = getSingleParam(params, "notice_error") || getSingleParam(params, "import_error");
   const noticeSuccess = getSingleParam(params, "notice_success") || getSingleParam(params, "import_success");
   const selectedProductFilter = getProductAdminFilter(params.product_filter);
+  const selectedProductCategory = getTextParam(params, "product_category");
+  const productSearchQuery = getTextParam(params, "product_query");
 
   if (!(await isAdminAuthenticated())) {
     return <LoginForm hasError={params.error === "invalid-password"} />;
@@ -809,7 +939,14 @@ export default async function AdminPage({
     throw error;
   }
 
-  const filteredProducts = filterAdminProducts(data.products, selectedProductFilter, data.clickCountsByProduct);
+  const categoryOptions = getCategoryOptions(data.products);
+  const filteredProducts = filterAdminProducts(
+    data.products,
+    selectedProductFilter,
+    data.clickCountsByProduct,
+    selectedProductCategory,
+    productSearchQuery,
+  );
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-8 text-slate-950">
@@ -838,6 +975,12 @@ export default async function AdminPage({
         </header>
 
         <AdminNotice key={noticeError || noticeSuccess || "admin-notice"} error={noticeError} success={noticeSuccess} />
+
+        <datalist id="admin-category-options">
+          {categoryOptions.map((category) => (
+            <option key={category} value={category} />
+          ))}
+        </datalist>
 
         <AdminStats stats={data.stats} />
 
@@ -883,6 +1026,15 @@ export default async function AdminPage({
             selectedFilter={selectedProductFilter}
             products={data.products}
             clickCountsByProduct={data.clickCountsByProduct}
+            selectedCategory={selectedProductCategory}
+            searchQuery={productSearchQuery}
+          />
+          <ProductSearchFilters
+            categories={categoryOptions}
+            selectedFilter={selectedProductFilter}
+            selectedCategory={selectedProductCategory}
+            searchQuery={productSearchQuery}
+            filteredCount={filteredProducts.length}
           />
           <ProductsTable
             products={filteredProducts}
@@ -951,6 +1103,7 @@ export default async function AdminPage({
     </main>
   );
 }
+
 
 
 
