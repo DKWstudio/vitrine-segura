@@ -15,6 +15,7 @@ interface MercadoLivreSearchResponse {
 
 interface MercadoLivreItem {
   id?: string;
+  item_id?: string;
   title?: string;
   price?: number;
   original_price?: number | null;
@@ -168,10 +169,15 @@ function normalizeMercadoLivreCatalogProduct(
   rule: ProductSearchRule,
 ): MarketplaceProduct | null {
   const winner = product.buy_box_winner || null;
-  const externalId = winner?.id || product.catalog_product_id || product.id;
+  const winnerId = winner?.id || winner?.item_id;
+  const externalId = winnerId || product.catalog_product_id || product.id;
   const title = winner?.title || product.name || product.title;
   const price = typeof winner?.price === "number" ? winner.price : product.price;
-  const productUrl = winner?.permalink || product.permalink || (product.id ? `https://www.mercadolivre.com.br/p/${product.id}` : null);
+  const productUrl =
+    winner?.permalink ||
+    product.permalink ||
+    (winnerId ? `https://produto.mercadolivre.com.br/${winnerId}` : null) ||
+    (product.id ? `https://www.mercadolivre.com.br/p/${product.id}` : null);
 
   if (!externalId || !title || typeof price !== "number" || !productUrl) {
     return null;
@@ -266,6 +272,34 @@ async function searchMarketplaceProducts(rule: ProductSearchRule) {
   return { ok: true as const, status: response.status, body: "", accessToken, refreshedToken, products };
 }
 
+async function getCatalogProductDetail(product: MercadoLivreCatalogProduct, accessToken?: string) {
+  const catalogId = product.catalog_product_id || product.id;
+
+  if (!catalogId) {
+    return product;
+  }
+
+  try {
+    const response = await requestMercadoLivre(`https://api.mercadolibre.com/products/${catalogId}`, accessToken);
+
+    if (!response.ok) {
+      return product;
+    }
+
+    const detail = (await response.json()) as MercadoLivreCatalogProduct;
+
+    return {
+      ...product,
+      ...detail,
+      buy_box_winner: detail.buy_box_winner || product.buy_box_winner || null,
+    };
+  } catch (error) {
+    console.warn(
+      `Could not load Mercado Livre catalog detail ${catalogId}: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
+    return product;
+  }
+}
 async function searchCatalogProducts(rule: ProductSearchRule, tokenHint?: string | null) {
   const params = new URLSearchParams({
     site_id: "MLB",
@@ -291,10 +325,21 @@ async function searchCatalogProducts(rule: ProductSearchRule, tokenHint?: string
   }
 
   const payload = (await response.json()) as MercadoLivreCatalogSearchResponse;
-
-  return (payload.results || [])
+  const rawProducts = payload.results || [];
+  const detailedProducts = await Promise.all(
+    rawProducts.map((product) => getCatalogProductDetail(product, refreshedToken || token)),
+  );
+  const products = detailedProducts
     .map((product) => normalizeMercadoLivreCatalogProduct(product, rule))
     .filter((product): product is MarketplaceProduct => product !== null);
+
+  if (rawProducts.length > 0 && products.length === 0) {
+    console.warn(
+      `Mercado Livre catalog search returned ${rawProducts.length} results, but none had enough price/link data to save.`,
+    );
+  }
+
+  return products;
 }
 
 export async function searchMercadoLivreProducts(
