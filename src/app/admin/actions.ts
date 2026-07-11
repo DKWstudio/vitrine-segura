@@ -617,6 +617,38 @@ export async function deleteProduct(formData: FormData) {
   redirectWithAdminMessage("notice_success", "Produto excluido.");
 }
 
+async function updateProductCategoriesFromForm(formData: FormData, ids: string[]) {
+  const supabase = createServiceSupabaseClient();
+  const updates = ids
+    .map((id) => ({ id, category: formData.get(`category_${id}`) }))
+    .filter((item): item is { id: string; category: string } => typeof item.category === "string" && item.category.trim().length > 0)
+    .map((item) => supabase.from("products").update({ category: item.category.trim() }).eq("id", item.id));
+
+  const results = await Promise.all(updates);
+  const firstError = results.find((result) => result.error)?.error;
+
+  if (firstError) {
+    throw new Error(firstError.message);
+  }
+}
+
+export async function updatePendingProductCategories(formData: FormData) {
+  await requireAdmin();
+
+  const ids = formData
+    .getAll("pending_product_id")
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+
+  if (ids.length === 0) {
+    redirectWithAdminMessage("notice_error", "Nenhum produto pendente para atualizar.");
+  }
+
+  await updateProductCategoriesFromForm(formData, ids);
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  redirectWithAdminMessage("notice_success", "Categorias atualizadas.");
+}
 export async function publishSelectedProducts(formData: FormData) {
   await requireAdmin();
 
@@ -821,6 +853,20 @@ export async function createSearchRule(formData: FormData) {
   revalidatePath("/admin");
 }
 
+export async function deleteSearchRule(formData: FormData) {
+  await requireAdmin();
+
+  const id = requiredString(formData, "id");
+  const supabase = createServiceSupabaseClient();
+  const { error } = await supabase.from("search_rules").delete().eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/admin");
+  redirectWithAdminMessage("notice_success", "Regra excluida.");
+}
 export async function updateSearchRule(formData: FormData) {
   await requireAdmin();
 

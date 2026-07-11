@@ -12,6 +12,7 @@ import type { AffiliateProduct, ClickSummary, ProductSource, SearchRule } from "
 import {
   checkProductLinks,
   createManualProduct,
+  deleteSearchRule,
   importMercadoLivreProduct,
   importBulkProducts,
   createSearchRule,
@@ -24,6 +25,7 @@ import {
   toggleProductFeatured,
   updateAffiliateUrl,
   updateManualProduct,
+  updatePendingProductCategories,
   updateSearchRule,
 } from "@/app/admin/actions";
 
@@ -354,6 +356,14 @@ function RuleForm({ rule }: { rule?: SearchRule }) {
         <button className="rounded-lg bg-slate-950 px-4 py-2 text-xs font-black uppercase text-white">
           {rule ? "Salvar" : "Criar"}
         </button>
+        {rule ? (
+          <button
+            formAction={deleteSearchRule}
+            className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs font-black uppercase text-red-700"
+          >
+            Excluir
+          </button>
+        ) : null}
       </div>
     </form>
   );
@@ -864,33 +874,50 @@ function PublishQueue({ products }: { products: AffiliateProduct[] }) {
       <form action={publishSelectedProducts} className="mt-4 space-y-4">
         <div className="grid gap-3 lg:grid-cols-2">
           {products.map((product) => (
-            <label
+            <div
               key={product.id}
-              className="flex cursor-pointer gap-3 rounded-xl border border-amber-100 bg-white p-3 shadow-sm transition hover:border-amber-300"
+              className="flex gap-3 rounded-xl border border-amber-100 bg-white p-3 shadow-sm transition hover:border-amber-300"
             >
+              <input type="hidden" name="pending_product_id" value={product.id} />
               <input type="checkbox" name="product_id" value={product.id} className="mt-5 h-4 w-4 rounded border-slate-300" />
               {product.image_url ? (
                 <img src={product.image_url} alt="" className="h-14 w-14 flex-none rounded-lg object-contain" />
               ) : (
                 <span className="h-14 w-14 flex-none rounded-lg bg-slate-100" />
               )}
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-bold text-slate-950">{product.title}</span>
-                <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-wide">
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-bold text-slate-950">{product.title}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-wide">
                   <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-600">{product.source}</span>
-                  <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-700">{product.category}</span>
                   <span className="rounded-full bg-green-50 px-2 py-1 text-green-700">{formatCurrency(product.price)}</span>
                   {!product.affiliate_url ? (
                     <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-700">Sem afiliado</span>
                   ) : null}
-                </span>
-              </span>
-            </label>
+                </div>
+                <label className="mt-3 block text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Categoria
+                  <input
+                    name={`category_${product.id}`}
+                    list="admin-category-options"
+                    defaultValue={product.category}
+                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold normal-case tracking-normal text-slate-950"
+                  />
+                </label>
+              </div>
+            </div>
           ))}
         </div>
-        <button className="rounded-xl bg-slate-950 px-5 py-3 text-xs font-black uppercase text-white">
-          Publicar selecionados
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button className="rounded-xl bg-slate-950 px-5 py-3 text-xs font-black uppercase text-white">
+            Publicar selecionados
+          </button>
+          <button
+            formAction={updatePendingProductCategories}
+            className="rounded-xl border border-amber-300 bg-white px-5 py-3 text-xs font-black uppercase text-amber-700"
+          >
+            Salvar categorias
+          </button>
+        </div>
       </form>
     </section>
   );
@@ -1124,7 +1151,7 @@ export default async function AdminPage({
         <section className="space-y-4">
           <div>
             <h2 className="text-xl font-black uppercase">Regras de busca</h2>
-            <p className="text-sm text-slate-500">Deixe regras Mercado Livre inativas enquanto a API de busca estiver bloqueada.</p>
+            <p className="text-sm text-slate-500">Shopee busca por palavra-chave usando mais recentes; sem termo, prioriza maior comissao. Mercado Livre segue limitado enquanto a API de busca estiver bloqueada.</p>
           </div>
           <RuleForm />
           <div className="space-y-3">
