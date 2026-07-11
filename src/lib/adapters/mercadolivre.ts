@@ -1,4 +1,4 @@
-﻿import { normalizeMarketplaceProduct } from "@/lib/adapters/normalization";
+import { normalizeMarketplaceProduct } from "@/lib/adapters/normalization";
 import {
   getMercadoLivreAccessToken,
   getMercadoLivreRefreshToken,
@@ -7,6 +7,7 @@ import {
 import type { MarketplaceProduct, ProductSearchRule } from "@/lib/adapters/types";
 
 const mercadoLivreSearchUrl = "https://api.mercadolibre.com/sites/MLB/search";
+const mercadoLivreCatalogSearchUrl = "https://api.mercadolibre.com/products/search";
 
 interface MercadoLivreSearchResponse {
   results?: MercadoLivreItem[];
@@ -35,8 +36,49 @@ interface MercadoLivreItem {
   rating_average?: number;
 }
 
+interface MercadoLivreCatalogSearchResponse {
+  results?: MercadoLivreCatalogProduct[];
+}
+
+interface MercadoLivreCatalogProduct {
+  id?: string;
+  catalog_product_id?: string;
+  name?: string;
+  title?: string;
+  pictures?: Array<{ url?: string; secure_url?: string }>;
+  main_picture?: string;
+  permalink?: string;
+  buy_box_winner?: MercadoLivreItem | null;
+  price?: number;
+  currency_id?: string;
+  review?: {
+    rating_average?: number;
+    total?: number;
+  };
+  reviews?: {
+    rating_average?: number;
+    total?: number;
+  };
+}
+
 function getImageUrl(item: MercadoLivreItem) {
   const imageUrl = item.secure_thumbnail || item.thumbnail || null;
+
+  if (!imageUrl) {
+    return null;
+  }
+
+  return imageUrl.replace(/^http:\/\//, "https://");
+}
+
+function getCatalogImageUrl(product: MercadoLivreCatalogProduct, winner?: MercadoLivreItem | null) {
+  const imageUrl =
+    winner?.secure_thumbnail ||
+    winner?.thumbnail ||
+    product.pictures?.[0]?.secure_url ||
+    product.pictures?.[0]?.url ||
+    product.main_picture ||
+    null;
 
   if (!imageUrl) {
     return null;
@@ -60,6 +102,34 @@ function getRating(item: MercadoLivreItem) {
 function getReviewsCount(item: MercadoLivreItem) {
   if (typeof item.reviews?.total === "number") {
     return item.reviews.total;
+  }
+
+  return null;
+}
+
+function getCatalogRating(product: MercadoLivreCatalogProduct, winner?: MercadoLivreItem | null) {
+  if (winner) {
+    return getRating(winner);
+  }
+
+  if (typeof product.reviews?.rating_average === "number") {
+    return product.reviews.rating_average;
+  }
+
+  if (typeof product.review?.rating_average === "number") {
+    return product.review.rating_average;
+  }
+
+  return null;
+}
+
+function getCatalogReviewsCount(product: MercadoLivreCatalogProduct) {
+  if (typeof product.reviews?.total === "number") {
+    return product.reviews.total;
+  }
+
+  if (typeof product.review?.total === "number") {
+    return product.review.total;
   }
 
   return null;
@@ -93,6 +163,40 @@ function normalizeMercadoLivreItem(
   });
 }
 
+function normalizeMercadoLivreCatalogProduct(
+  product: MercadoLivreCatalogProduct,
+  rule: ProductSearchRule,
+): MarketplaceProduct | null {
+  const winner = product.buy_box_winner || null;
+  const externalId = winner?.id || product.catalog_product_id || product.id;
+  const title = winner?.title || product.name || product.title;
+  const price = typeof winner?.price === "number" ? winner.price : product.price;
+  const productUrl = winner?.permalink || product.permalink || (product.id ? `https://www.mercadolivre.com.br/p/${product.id}` : null);
+
+  if (!externalId || !title || typeof price !== "number" || !productUrl) {
+    return null;
+  }
+
+  return normalizeMarketplaceProduct({
+    source: "mercadolivre",
+    external_id: externalId,
+    title,
+    description: product.id ? `Catalogo Mercado Livre: ${product.id}` : "Catalogo Mercado Livre",
+    category: rule.category,
+    price,
+    old_price: typeof winner?.original_price === "number" ? winner.original_price : null,
+    currency: winner?.currency_id || product.currency_id || "BRL",
+    image_url: getCatalogImageUrl(product, winner),
+    product_url: productUrl,
+    affiliate_url: null,
+    rating: getCatalogRating(product, winner),
+    reviews_count: getCatalogReviewsCount(product),
+    sold_count: typeof winner?.sold_quantity === "number" ? winner.sold_quantity : null,
+    seller_name: winner?.seller?.nickname || null,
+    seller_reputation: winner?.seller?.seller_reputation?.level_id || null,
+  });
+}
+
 function createHeaders(accessToken?: string): HeadersInit {
   return {
     Accept: "application/json",
@@ -102,54 +206,127 @@ function createHeaders(accessToken?: string): HeadersInit {
   };
 }
 
-async function requestMercadoLivreSearch(requestUrl: string, accessToken?: string) {
+async function requestMercadoLivre(requestUrl: string, accessToken?: string) {
   return fetch(requestUrl, {
     headers: createHeaders(accessToken),
     cache: "no-store",
   });
 }
 
-export async function searchMercadoLivreProducts(
-  rule: ProductSearchRule,
-): Promise<MarketplaceProduct[]> {
+async function getFreshMercadoLivreToken() {
+  if (!getMercadoLivreRefreshToken()) {
+    return null;
+  }
+
+  const refreshed = await refreshMercadoLivreAccessToken();
+  return refreshed?.access_token || null;
+}
+
+async function requestWithCurrentOrFreshToken(requestUrl: string) {
+  const accessToken = getMercadoLivreAccessToken();
+  let response = await requestMercadoLivre(requestUrl, accessToken);
+  let refreshedToken: string | null = null;
+
+  if ((response.status === 401 || response.status === 403) && getMercadoLivreRefreshToken()) {
+    refreshedToken = await getFreshMercadoLivreToken();
+
+    if (refreshedToken) {
+      response = await requestMercadoLivre(requestUrl, refreshedToken);
+    }
+  }
+
+  return { response, accessToken, refreshedToken };
+}
+
+async function searchMarketplaceProducts(rule: ProductSearchRule) {
   const params = new URLSearchParams({
     q: rule.query,
     limit: String(Math.min(Math.max(rule.max_results || 20, 1), 50)),
   });
-
   const requestUrl = `${mercadoLivreSearchUrl}?${params.toString()}`;
-  const accessToken = getMercadoLivreAccessToken();
-  let response = await requestMercadoLivreSearch(requestUrl, accessToken);
+  const { response, accessToken, refreshedToken } = await requestWithCurrentOrFreshToken(requestUrl);
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    return {
+      ok: false as const,
+      status: response.status,
+      body: errorBody,
+      accessToken,
+      refreshedToken,
+      products: [] as MarketplaceProduct[],
+    };
+  }
+
+  const payload = (await response.json()) as MercadoLivreSearchResponse;
+  const products = (payload.results || [])
+    .map((item) => normalizeMercadoLivreItem(item, rule))
+    .filter((product): product is MarketplaceProduct => product !== null);
+
+  return { ok: true as const, status: response.status, body: "", accessToken, refreshedToken, products };
+}
+
+async function searchCatalogProducts(rule: ProductSearchRule, tokenHint?: string | null) {
+  const params = new URLSearchParams({
+    site_id: "MLB",
+    q: rule.query,
+    limit: String(Math.min(Math.max(rule.max_results || 20, 1), 50)),
+  });
+  const requestUrl = `${mercadoLivreCatalogSearchUrl}?${params.toString()}`;
+  const token = tokenHint || getMercadoLivreAccessToken() || (await getFreshMercadoLivreToken()) || undefined;
+  let response = await requestMercadoLivre(requestUrl, token);
   let refreshedToken: string | null = null;
 
   if ((response.status === 401 || response.status === 403) && getMercadoLivreRefreshToken()) {
-    const refreshed = await refreshMercadoLivreAccessToken();
-    refreshedToken = refreshed?.access_token || null;
+    refreshedToken = await getFreshMercadoLivreToken();
 
     if (refreshedToken) {
-      response = await requestMercadoLivreSearch(requestUrl, refreshedToken);
+      response = await requestMercadoLivre(requestUrl, refreshedToken);
     }
   }
 
   if (!response.ok) {
     const errorBody = await response.text();
-    const authHint =
-      response.status === 403 && !accessToken
-        ? " The public search endpoint was rejected without an access token. Configure MERCADO_LIVRE_ACCESS_TOKEN or test from the deployed Vercel environment."
-        : "";
-    const refreshHint =
-      refreshedToken && response.status === 403
-        ? " A refreshed access token was also rejected. Check app permissions or Mercado Livre API access for this endpoint."
-        : "";
-
-    throw new Error(
-      `Mercado Livre search failed with status ${response.status}: ${errorBody.slice(0, 300)}${authHint}${refreshHint}`,
-    );
+    throw new Error(`Mercado Livre catalog search failed with status ${response.status}: ${errorBody.slice(0, 300)}`);
   }
 
-  const payload = (await response.json()) as MercadoLivreSearchResponse;
+  const payload = (await response.json()) as MercadoLivreCatalogSearchResponse;
 
   return (payload.results || [])
-    .map((item) => normalizeMercadoLivreItem(item, rule))
+    .map((product) => normalizeMercadoLivreCatalogProduct(product, rule))
     .filter((product): product is MarketplaceProduct => product !== null);
+}
+
+export async function searchMercadoLivreProducts(
+  rule: ProductSearchRule,
+): Promise<MarketplaceProduct[]> {
+  const marketplace = await searchMarketplaceProducts(rule);
+
+  if (marketplace.ok) {
+    return marketplace.products;
+  }
+
+  if (marketplace.status === 401 || marketplace.status === 403) {
+    const catalogProducts = await searchCatalogProducts(rule, marketplace.refreshedToken || marketplace.accessToken);
+
+    if (catalogProducts.length > 0) {
+      console.warn(
+        `Mercado Livre marketplace search returned ${marketplace.status}; using catalog fallback with ${catalogProducts.length} products.`,
+      );
+      return catalogProducts;
+    }
+  }
+
+  const authHint =
+    marketplace.status === 403 && !marketplace.accessToken
+      ? " The public search endpoint was rejected without an access token. Configure MERCADO_LIVRE_ACCESS_TOKEN or test from the deployed Vercel environment."
+      : "";
+  const refreshHint =
+    marketplace.refreshedToken && marketplace.status === 403
+      ? " A refreshed access token was also rejected for marketplace search."
+      : "";
+
+  throw new Error(
+    `Mercado Livre search failed with status ${marketplace.status}: ${marketplace.body.slice(0, 300)}${authHint}${refreshHint}`,
+  );
 }
