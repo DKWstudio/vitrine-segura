@@ -333,8 +333,12 @@ async function searchCatalogProducts(rule: ProductSearchRule, tokenHint?: string
     .map((product) => normalizeMercadoLivreCatalogProduct(product, rule))
     .filter((product): product is MarketplaceProduct => product !== null);
 
-  if (rawProducts.length > 0 && products.length === 0) {
-    console.warn(
+  if (rawProducts.length === 0) {
+    throw new Error(`Mercado Livre catalog search returned 0 results for "${rule.query}".`);
+  }
+
+  if (products.length === 0) {
+    throw new Error(
       `Mercado Livre catalog search returned ${rawProducts.length} results, but none had enough price/link data to save.`,
     );
   }
@@ -351,14 +355,18 @@ export async function searchMercadoLivreProducts(
     return marketplace.products;
   }
 
-  if (marketplace.status === 401 || marketplace.status === 403) {
-    const catalogProducts = await searchCatalogProducts(rule, marketplace.refreshedToken || marketplace.accessToken);
+  let catalogError = "";
 
-    if (catalogProducts.length > 0) {
+  if (marketplace.status === 401 || marketplace.status === 403) {
+    try {
+      const catalogProducts = await searchCatalogProducts(rule, marketplace.refreshedToken || marketplace.accessToken);
+
       console.warn(
         `Mercado Livre marketplace search returned ${marketplace.status}; using catalog fallback with ${catalogProducts.length} products.`,
       );
       return catalogProducts;
+    } catch (error) {
+      catalogError = error instanceof Error ? ` Catalog fallback also failed: ${error.message}` : " Catalog fallback also failed.";
     }
   }
 
