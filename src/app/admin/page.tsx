@@ -623,7 +623,7 @@ function ProductSearchFilters({
   const clearHref = clearParams.toString() ? `/admin?${clearParams.toString()}` : "/admin";
 
   return (
-    <form action="/admin" className="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:grid-cols-12">
+    <form action="/admin#produtos-encontrados" method="get" className="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:grid-cols-12">
       {selectedFilter !== "all" ? <input type="hidden" name="product_filter" value={selectedFilter} /> : null}
       <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 md:col-span-4">
         Categoria
@@ -1017,7 +1017,7 @@ export default async function AdminPage({
           </div>
         </section>
 
-        <section className="space-y-4">
+        <section id="produtos-encontrados" className="scroll-mt-6 space-y-4">
           <div>
             <h2 className="text-xl font-black uppercase">Produtos encontrados</h2>
             <p className="text-sm text-slate-500">Filtre por fonte, afiliado, destaque ou status antes de editar.</p>
