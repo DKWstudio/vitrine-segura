@@ -380,6 +380,6 @@ export async function searchMercadoLivreProducts(
       : "";
 
   throw new Error(
-    `Mercado Livre search failed with status ${marketplace.status}: ${marketplace.body.slice(0, 300)}${authHint}${refreshHint}`,
+    `Mercado Livre search failed with status ${marketplace.status}: ${marketplace.body.slice(0, 300)}${authHint}${refreshHint}${catalogError}`,
   );
 }

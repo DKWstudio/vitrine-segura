@@ -87,6 +87,7 @@ export async function GET(request: NextRequest) {
       catalog_search: Awaited<ReturnType<typeof fetchStatus>> | null;
     };
   } | null = null;
+  let catalogDetailProbe: Awaited<ReturnType<typeof fetchStatus>> | null = null;
   let adapterTest:
     | { ok: true; count: number; sample: Array<{ external_id: string; title: string; price: number; product_url: string; image_url: string | null }> }
     | { ok: false; error: string };
@@ -111,6 +112,21 @@ export async function GET(request: NextRequest) {
           },
         }
       : { ok: false, error: "Refresh token is not configured." };
+
+    const catalogBody = refresh?.retried?.catalog_search?.body;
+
+    if (refreshedToken && catalogBody) {
+      try {
+        const catalogPayload = JSON.parse(catalogBody) as { results?: Array<{ id?: string; catalog_product_id?: string }> };
+        const catalogId = catalogPayload.results?.[0]?.catalog_product_id || catalogPayload.results?.[0]?.id;
+
+        if (catalogId) {
+          catalogDetailProbe = await fetchStatus(`https://api.mercadolibre.com/products/${catalogId}`, refreshedToken, true);
+        }
+      } catch {
+        catalogDetailProbe = null;
+      }
+    }
   } catch (error) {
     refresh = {
       ok: false,
@@ -148,7 +164,7 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({
-    adapter_version: "ml-catalog-fallback-v4",
+    adapter_version: "ml-catalog-fallback-v5",
     env: status,
     query,
     users_me: usersMe,
@@ -159,6 +175,7 @@ export async function GET(request: NextRequest) {
     marketplace_search: marketplaceSearch,
     catalog_search: catalogSearch,
     refresh,
+    catalog_detail_probe: catalogDetailProbe,
     adapter_test: adapterTest,
     interpretation: {
       users_me_200_search_403:
