@@ -10,6 +10,7 @@ import { createServiceSupabaseClient } from "@/lib/supabase/server";
 import { normalizeSupabaseProduct, productColumns } from "@/lib/products";
 import type { AffiliateProduct, ClickSummary, ProductSource, SearchRule } from "@/types/product";
 import {
+  checkProductLinks,
   createManualProduct,
   importMercadoLivreProduct,
   importBulkProducts,
@@ -184,6 +185,11 @@ function needsCatalogReview(product: AffiliateProduct) {
   return getProductReviewTime(product) < Date.now() - staleReviewMs;
 }
 
+function hasForcedReview(product: AffiliateProduct) {
+  const reviewedAt = product.last_checked_at ? new Date(product.last_checked_at).getTime() : 0;
+  return reviewedAt > 0 && reviewedAt <= new Date("2001-01-01T00:00:00.000Z").getTime();
+}
+
 function formatShortDate(value: string | null) {
   if (!value) {
     return "Sem revisao";
@@ -193,6 +199,10 @@ function formatShortDate(value: string | null) {
 
   if (!Number.isFinite(date.getTime())) {
     return "Sem revisao";
+  }
+
+  if (date.getFullYear() <= 2001) {
+    return "Precisa revisao";
   }
 
   return date.toLocaleDateString("pt-BR");
@@ -663,6 +673,68 @@ function ProductSearchFilters({
     </form>
   );
 }
+function GrowthReportPanel({ products }: { products: AffiliateProduct[] }) {
+  const target = 100;
+  const sourceItems = [
+    {
+      label: "Mercado Livre",
+      count: products.filter((product) => product.source === "mercadolivre").length,
+      color: "bg-blue-600",
+      badge: "bg-blue-50 text-blue-700",
+    },
+    {
+      label: "Shopee",
+      count: products.filter((product) => product.source === "shopee").length,
+      color: "bg-orange-500",
+      badge: "bg-orange-50 text-orange-700",
+    },
+  ];
+  const categories = Array.from(
+    products.reduce((map, product) => map.set(product.category, (map.get(product.category) || 0) + 1), new Map<string, number>()),
+  ).sort((a, b) => b[1] - a[1]);
+
+  return (
+    <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div>
+        <h2 className="text-xl font-black uppercase">Relatorio de crescimento</h2>
+        <p className="text-sm text-slate-500">Acompanhe a meta inicial de 100 produtos por plataforma e a distribuicao por categoria.</p>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        {sourceItems.map((item) => {
+          const progress = Math.min(100, Math.round((item.count / target) * 100));
+
+          return (
+            <div key={item.label} className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{item.label}</p>
+                  <p className="mt-1 text-sm font-bold text-slate-600">{item.count} de {target} produtos</p>
+                </div>
+                <span className={`rounded-full px-3 py-1 text-xs font-black ${item.badge}`}>{progress}%</span>
+              </div>
+              <div className="mt-3 h-2 rounded-full bg-white">
+                <div className={`h-2 rounded-full ${item.color}`} style={{ width: `${progress}%` }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Categorias</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {categories.map(([category, count]) => (
+            <div key={category} className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+              <span className="min-w-0 truncate text-xs font-bold text-slate-700">{category}</span>
+              <span className="rounded-full bg-white px-2 py-1 text-[10px] font-black text-slate-500">{count}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 function CatalogMaintenancePanel({
   products,
   clickCountsByProduct,
@@ -842,6 +914,12 @@ function ProductsTable({
                   <span className={product.is_featured ? "text-amber-600" : "text-slate-400"}>{product.is_featured ? "Destaque" : "Normal"}</span>
                   <br />
                   <span className={needsCatalogReview(product) ? "text-amber-600" : "text-slate-400"}>Rev. {formatShortDate(product.last_checked_at || product.created_at)}</span>
+                  {hasForcedReview(product) ? (
+                    <>
+                      <br />
+                      <span className="text-red-700">Precisa revisao</span>
+                    </>
+                  ) : null}
                 </td>
                 <td className="p-3">
                   <form action={updateAffiliateUrl} className="flex min-w-72 gap-2">
@@ -863,6 +941,12 @@ function ProductsTable({
                       <input type="hidden" name="is_active" value={String(product.is_active)} />
                       <button className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-black uppercase text-slate-700">
                         {product.is_active ? "Desativar" : "Ativar"}
+                      </button>
+                    </form>
+                    <form action={checkProductLinks}>
+                      <input type="hidden" name="id" value={product.id} />
+                      <button className="w-full rounded-lg border border-green-200 px-3 py-2 text-xs font-black uppercase text-green-700">
+                        Verificar links
                       </button>
                     </form>
                     <form action={markProductReviewed}>
@@ -988,6 +1072,8 @@ export default async function AdminPage({
           products={data.products}
           clickCountsByProduct={data.clickCountsByProduct}
         />
+
+        <GrowthReportPanel products={data.products} />
 
         <section className="space-y-4">
           <div>

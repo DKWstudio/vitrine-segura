@@ -75,6 +75,57 @@ function normalizeSource(value: string): ProductSource {
   return value === "shopee" ? "shopee" : "mercadolivre";
 }
 
+const needsReviewDate = "2000-01-01T00:00:00.000Z";
+
+async function checkUrlResponse(url: string | null) {
+  if (!url) {
+    return { ok: true, status: null };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const headResponse = await fetch(url, {
+      method: "HEAD",
+      redirect: "follow",
+      cache: "no-store",
+      signal: controller.signal,
+      headers: {
+        "user-agent": "VitrineSeguraLinkCheck/1.0",
+      },
+    });
+
+    if (headResponse.ok || (headResponse.status >= 300 && headResponse.status < 400)) {
+      return { ok: true, status: headResponse.status };
+    }
+
+    if (headResponse.status !== 405 && headResponse.status !== 403) {
+      return { ok: false, status: headResponse.status };
+    }
+
+    const getResponse = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+      cache: "no-store",
+      signal: controller.signal,
+      headers: {
+        "range": "bytes=0-0",
+        "user-agent": "VitrineSeguraLinkCheck/1.0",
+      },
+    });
+
+    return {
+      ok: getResponse.ok || (getResponse.status >= 300 && getResponse.status < 400),
+      status: getResponse.status,
+    };
+  } catch {
+    return { ok: false, status: null };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 
 function parseBulkNumber(value: string | undefined) {
   if (!value || value.trim() === "") {
@@ -622,6 +673,52 @@ export async function updateAffiliateUrl(formData: FormData) {
 }
 
 
+export async function checkProductLinks(formData: FormData) {
+  await requireAdmin();
+
+  const id = requiredString(formData, "id");
+  const supabase = createServiceSupabaseClient();
+  const { data: product, error: loadError } = await supabase
+    .from("products")
+    .select("id, title, product_url, affiliate_url")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (loadError || !product) {
+    redirectWithAdminMessage("notice_error", loadError?.message || "Produto nao encontrado para verificar links.");
+  }
+
+  const productUrl = typeof product.product_url === "string" ? product.product_url : null;
+  const affiliateUrl = typeof product.affiliate_url === "string" ? product.affiliate_url : null;
+  const [productCheck, affiliateCheck] = await Promise.all([
+    checkUrlResponse(productUrl),
+    checkUrlResponse(affiliateUrl),
+  ]);
+  const hasFailure = !productCheck.ok || !affiliateCheck.ok;
+
+  const { error: updateError } = await supabase
+    .from("products")
+    .update({ last_checked_at: hasFailure ? needsReviewDate : new Date().toISOString() })
+    .eq("id", id);
+
+  if (updateError) {
+    redirectWithAdminMessage("notice_error", `Nao consegui marcar a revisao do produto: ${updateError.message}`);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+
+  if (hasFailure) {
+    const failures = [
+      productCheck.ok ? null : `original ${productCheck.status ? `HTTP ${productCheck.status}` : "sem resposta"}`,
+      affiliateCheck.ok ? null : `afiliado ${affiliateCheck.status ? `HTTP ${affiliateCheck.status}` : "sem resposta"}`,
+    ].filter(Boolean);
+
+    redirectWithAdminMessage("notice_error", `Link com falha (${failures.join(", ")}). Produto marcado para revisao.`);
+  }
+
+  redirectWithAdminMessage("notice_success", "Links verificados com sucesso. Produto revisado.");
+}
 export async function markProductReviewed(formData: FormData) {
   await requireAdmin();
 
