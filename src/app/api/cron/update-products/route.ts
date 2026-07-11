@@ -61,7 +61,7 @@ function toProductRow(product: MarketplaceProduct, now: string) {
     sold_count: product.sold_count,
     seller_name: product.seller_name,
     seller_reputation: product.seller_reputation,
-    is_active: true,
+    is_active: false,
     score: product.score,
     last_checked_at: now,
   };
@@ -111,8 +111,32 @@ async function upsertProducts(products: MarketplaceProduct[], now: string) {
 
   const supabase = createServiceSupabaseClient();
   const rows = products.map((product) => toProductRow(product, now));
+  const externalIds = rows.map((row) => row.external_id);
+  const sources = Array.from(new Set(rows.map((row) => row.source)));
 
-  const { error } = await supabase.from("products").upsert(rows, {
+  const { data: existingRows, error: existingError } = await supabase
+    .from("products")
+    .select("source, external_id, is_active")
+    .in("external_id", externalIds)
+    .in("source", sources);
+
+  if (existingError) {
+    throw new Error(existingError.message);
+  }
+
+  const existingStatus = new Map(
+    (existingRows || []).map((row) => [`${row.source}:${row.external_id}`, Boolean(row.is_active)]),
+  );
+  const curatedRows = rows.map((row) => {
+    const key = `${row.source}:${row.external_id}`;
+
+    return {
+      ...row,
+      is_active: existingStatus.has(key) ? Boolean(existingStatus.get(key)) : false,
+    };
+  });
+
+  const { error } = await supabase.from("products").upsert(curatedRows, {
     onConflict: "source,external_id",
     ignoreDuplicates: false,
   });
@@ -121,7 +145,7 @@ async function upsertProducts(products: MarketplaceProduct[], now: string) {
     throw new Error(error.message);
   }
 
-  return rows.length;
+  return curatedRows.length;
 }
 
 async function deactivateStaleProducts(sources: ProductSource[], now: string) {

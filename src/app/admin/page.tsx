@@ -18,6 +18,7 @@ import {
   loginAdmin,
   logoutAdmin,
   markProductReviewed,
+  publishSelectedProducts,
   toggleProductActive,
   toggleProductFeatured,
   updateAffiliateUrl,
@@ -830,6 +831,63 @@ function CatalogMaintenancePanel({
     </section>
   );
 }
+function PublishQueue({ products }: { products: AffiliateProduct[] }) {
+  if (products.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-green-200 bg-green-50/60 p-5 text-sm text-green-800">
+        Nenhum produto aguardando publicacao neste filtro.
+      </div>
+    );
+  }
+
+  return (
+    <section className="rounded-xl border border-amber-200 bg-amber-50/70 p-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h3 className="text-lg font-black uppercase text-slate-950">Aguardando publicacao</h3>
+          <p className="text-sm text-amber-800">
+            Produtos novos da automacao entram aqui. Selecione os que devem aparecer no site.
+          </p>
+        </div>
+        <span className="rounded-full bg-white px-3 py-1 text-xs font-black uppercase text-amber-700 shadow-sm">
+          {products.length} pendente(s)
+        </span>
+      </div>
+
+      <form action={publishSelectedProducts} className="mt-4 space-y-4">
+        <div className="grid gap-3 lg:grid-cols-2">
+          {products.map((product) => (
+            <label
+              key={product.id}
+              className="flex cursor-pointer gap-3 rounded-xl border border-amber-100 bg-white p-3 shadow-sm transition hover:border-amber-300"
+            >
+              <input type="checkbox" name="product_id" value={product.id} className="mt-5 h-4 w-4 rounded border-slate-300" />
+              {product.image_url ? (
+                <img src={product.image_url} alt="" className="h-14 w-14 flex-none rounded-lg object-contain" />
+              ) : (
+                <span className="h-14 w-14 flex-none rounded-lg bg-slate-100" />
+              )}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-bold text-slate-950">{product.title}</span>
+                <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-wide">
+                  <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-600">{product.source}</span>
+                  <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-700">{product.category}</span>
+                  <span className="rounded-full bg-green-50 px-2 py-1 text-green-700">{formatCurrency(product.price)}</span>
+                  {!product.affiliate_url ? (
+                    <span className="rounded-full bg-amber-100 px-2 py-1 text-amber-700">Sem afiliado</span>
+                  ) : null}
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
+        <button className="rounded-xl bg-slate-950 px-5 py-3 text-xs font-black uppercase text-white">
+          Publicar selecionados
+        </button>
+      </form>
+    </section>
+  );
+}
 function ProductsTable({
   products,
   clickCountsByProduct,
@@ -1000,6 +1058,8 @@ export default async function AdminPage({
     selectedProductCategory,
     productSearchQuery,
   );
+  const pendingProducts = filteredProducts.filter((product) => !product.is_active);
+  const publishedProducts = filteredProducts.filter((product) => product.is_active);
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-8 text-slate-950">
@@ -1091,10 +1151,17 @@ export default async function AdminPage({
             searchQuery={productSearchQuery}
             filteredCount={filteredProducts.length}
           />
+          <PublishQueue products={pendingProducts} />
+          <div>
+            <h3 className="text-lg font-black uppercase">Produtos publicados</h3>
+            <p className="text-sm text-slate-500">
+              {publishedProducts.length} produto(s) visivel(is) no site dentro deste filtro.
+            </p>
+          </div>
           <ProductsTable
-            products={filteredProducts}
+            products={publishedProducts}
             clickCountsByProduct={data.clickCountsByProduct}
-            emptyMessage="Nenhum produto encontrado nesse filtro."
+            emptyMessage="Nenhum produto publicado nesse filtro."
           />
         </section>
 
@@ -1158,8 +1225,3 @@ export default async function AdminPage({
     </main>
   );
 }
-
-
-
-
-

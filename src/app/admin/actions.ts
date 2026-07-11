@@ -615,6 +615,28 @@ export async function deleteProduct(formData: FormData) {
   redirectWithAdminMessage("notice_success", "Produto excluido.");
 }
 
+export async function publishSelectedProducts(formData: FormData) {
+  await requireAdmin();
+
+  const ids = formData
+    .getAll("product_id")
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+
+  if (ids.length === 0) {
+    redirectWithAdminMessage("notice_error", "Selecione ao menos um produto para publicar.");
+  }
+
+  const supabase = createServiceSupabaseClient();
+  const { error } = await supabase.from("products").update({ is_active: true }).in("id", ids);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  redirectWithAdminMessage("notice_success", `${ids.length} produto(s) publicado(s).`);
+}
 export async function toggleProductActive(formData: FormData) {
   await requireAdmin();
 
@@ -796,4 +818,3 @@ export async function updateSearchRule(formData: FormData) {
 
   revalidatePath("/admin");
 }
-
