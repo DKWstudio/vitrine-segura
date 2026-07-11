@@ -13,6 +13,7 @@ import {
   checkProductLinks,
   createManualProduct,
   deleteSearchRule,
+  deleteSelectedPendingProducts,
   importMercadoLivreProduct,
   importBulkProducts,
   createSearchRule,
@@ -916,6 +917,12 @@ function PublishQueue({ products }: { products: AffiliateProduct[] }) {
             className="rounded-xl border border-amber-300 bg-white px-5 py-3 text-xs font-black uppercase text-amber-700"
           >
             Salvar categorias
+          </button>
+          <button
+            formAction={deleteSelectedPendingProducts}
+            className="rounded-xl border border-red-200 bg-white px-5 py-3 text-xs font-black uppercase text-red-700"
+          >
+            Excluir selecionados
           </button>
         </div>
       </form>

@@ -649,6 +649,33 @@ export async function updatePendingProductCategories(formData: FormData) {
   revalidatePath("/");
   redirectWithAdminMessage("notice_success", "Categorias atualizadas.");
 }
+export async function deleteSelectedPendingProducts(formData: FormData) {
+  await requireAdmin();
+
+  const ids = formData
+    .getAll("product_id")
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+
+  if (ids.length === 0) {
+    redirectWithAdminMessage("notice_error", "Selecione ao menos um produto pendente para excluir.");
+  }
+
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("products")
+    .delete()
+    .in("id", ids)
+    .eq("is_active", false)
+    .select("id");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  redirectWithAdminMessage("notice_success", `${data?.length || 0} produto(s) pendente(s) excluido(s).`);
+}
 export async function publishSelectedProducts(formData: FormData) {
   await requireAdmin();
 
@@ -661,6 +688,7 @@ export async function publishSelectedProducts(formData: FormData) {
   }
 
   const supabase = createServiceSupabaseClient();
+  await updateProductCategoriesFromForm(formData, ids);
   const { error } = await supabase.from("products").update({ is_active: true }).in("id", ids);
 
   if (error) {
