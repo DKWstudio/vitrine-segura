@@ -31,7 +31,7 @@ function createHeaders(accessToken?: string): HeadersInit {
   };
 }
 
-async function fetchStatus(url: string, accessToken?: string, includeBody = true) {
+async function fetchStatus(url: string, accessToken?: string, includeBody = true, bodyLimit = 800) {
   const response = await fetch(url, {
     headers: createHeaders(accessToken),
     cache: "no-store",
@@ -42,7 +42,7 @@ async function fetchStatus(url: string, accessToken?: string, includeBody = true
   return {
     status: response.status,
     ok: response.ok,
-    body: includeBody ? body.slice(0, 800) : undefined,
+    body: includeBody ? body.slice(0, bodyLimit) : undefined,
   };
 }
 
@@ -88,6 +88,8 @@ export async function GET(request: NextRequest) {
     };
   } | null = null;
   let catalogDetailProbe: Awaited<ReturnType<typeof fetchStatus>> | null = null;
+  let catalogItemsProbe: Awaited<ReturnType<typeof fetchStatus>> | null = null;
+  let catalogItemsSearchProbe: Awaited<ReturnType<typeof fetchStatus>> | null = null;
   let adapterTest:
     | { ok: true; count: number; sample: Array<{ external_id: string; title: string; price: number; product_url: string; image_url: string | null }> }
     | { ok: false; error: string };
@@ -113,18 +115,25 @@ export async function GET(request: NextRequest) {
         }
       : { ok: false, error: "Refresh token is not configured." };
 
-    const catalogBody = refresh?.retried?.catalog_search?.body;
-
-    if (refreshedToken && catalogBody) {
+    if (refreshedToken) {
       try {
+        const catalogResponse = await fetch(catalogSearchUrl, {
+          headers: createHeaders(refreshedToken),
+          cache: "no-store",
+        });
+        const catalogBody = await catalogResponse.text();
         const catalogPayload = JSON.parse(catalogBody) as { results?: Array<{ id?: string; catalog_product_id?: string }> };
         const catalogId = catalogPayload.results?.[0]?.catalog_product_id || catalogPayload.results?.[0]?.id;
 
         if (catalogId) {
-          catalogDetailProbe = await fetchStatus(`https://api.mercadolibre.com/products/${catalogId}`, refreshedToken, true);
+          catalogDetailProbe = await fetchStatus(`https://api.mercadolibre.com/products/${catalogId}`, refreshedToken, true, 3000);
+          catalogItemsProbe = await fetchStatus(`https://api.mercadolibre.com/products/${catalogId}/items?limit=3`, refreshedToken, true, 3000);
+          catalogItemsSearchProbe = await fetchStatus(`https://api.mercadolibre.com/sites/MLB/search?catalog_product_id=${encodeURIComponent(catalogId)}&limit=3`, refreshedToken, true, 3000);
         }
       } catch {
         catalogDetailProbe = null;
+        catalogItemsProbe = null;
+        catalogItemsSearchProbe = null;
       }
     }
   } catch (error) {
@@ -164,7 +173,7 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({
-    adapter_version: "ml-catalog-fallback-v5",
+    adapter_version: "ml-catalog-fallback-v6",
     env: status,
     query,
     users_me: usersMe,
@@ -176,6 +185,8 @@ export async function GET(request: NextRequest) {
     catalog_search: catalogSearch,
     refresh,
     catalog_detail_probe: catalogDetailProbe,
+    catalog_items_probe: catalogItemsProbe,
+    catalog_items_search_probe: catalogItemsSearchProbe,
     adapter_test: adapterTest,
     interpretation: {
       users_me_200_search_403:
