@@ -748,9 +748,6 @@ function CatalogMaintenancePanel({
   const popularWithoutFeatured = products.filter((product) => (clickCountsByProduct[product.id] || 0) > 0 && !product.is_featured);
   const inactive = products.filter((product) => !product.is_active);
   const staleReview = products.filter((product) => needsCatalogReview(product));
-  const mercadoLivreCount = products.filter((product) => product.source === "mercadolivre").length;
-  const shopeeCount = products.filter((product) => product.source === "shopee").length;
-  const target = 100;
 
   const items: Array<{
     label: string;
@@ -829,34 +826,6 @@ function CatalogMaintenancePanel({
             <p className="mt-2 text-xs font-medium leading-relaxed text-slate-500">{item.description}</p>
           </Link>
         ))}
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Meta Mercado Livre</p>
-              <p className="mt-1 text-sm font-bold text-slate-600">{mercadoLivreCount} de {target} produtos</p>
-            </div>
-            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">{Math.min(100, Math.round((mercadoLivreCount / target) * 100))}%</span>
-          </div>
-          <div className="mt-3 h-2 rounded-full bg-slate-100">
-            <div className="h-2 rounded-full bg-blue-600" style={{ width: `${Math.min(100, (mercadoLivreCount / target) * 100)}%` }} />
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Meta Shopee</p>
-              <p className="mt-1 text-sm font-bold text-slate-600">{shopeeCount} de {target} produtos</p>
-            </div>
-            <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-black text-orange-700">{Math.min(100, Math.round((shopeeCount / target) * 100))}%</span>
-          </div>
-          <div className="mt-3 h-2 rounded-full bg-slate-100">
-            <div className="h-2 rounded-full bg-orange-500" style={{ width: `${Math.min(100, (shopeeCount / target) * 100)}%` }} />
-          </div>
-        </div>
       </div>
     </section>
   );
