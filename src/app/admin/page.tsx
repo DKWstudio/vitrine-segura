@@ -372,7 +372,7 @@ function BulkImportForm() {
       <div className="grid gap-3 text-sm text-green-950 md:grid-cols-3">
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-green-700">Importacao em lote</p>
-          <p className="mt-1 font-semibold">Cole linhas no formato | ou envie o CSV gerado pela Shopee.</p>
+          <p className="mt-1 font-semibold">Cole linhas no formato | ou envie CSV da Shopee/Mercado Livre.</p>
         </div>
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-green-700">Colunas</p>
@@ -380,7 +380,7 @@ function BulkImportForm() {
         </div>
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-green-700">Duplicados</p>
-          <p className="mt-1 font-medium">CSV Shopee: usa Item Id, Item Name, Price, Sales, Nome da loja, Product Link e Offer Link automaticamente.</p>
+          <p className="mt-1 font-medium">CSV Shopee e Mercado Livre: detecta cabecalho e mapeia as colunas automaticamente.</p>
         </div>
       </div>
 
@@ -394,7 +394,7 @@ function BulkImportForm() {
           />
         </label>
         <label className="block rounded-xl border border-green-200 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-green-700 md:col-span-2">
-          Arquivo CSV Shopee opcional
+          Arquivo CSV opcional
           <input
             name="bulk_file"
             type="file"
@@ -413,7 +413,7 @@ function BulkImportForm() {
 
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <p className="text-xs font-medium text-green-800">
-          Voce pode enviar o CSV da Shopee ou colar linhas manualmente. No CSV, a imagem nao vem no arquivo e pode ser completada depois. Limite: 200 linhas por importacao.
+          Voce pode enviar CSV Shopee, CSV Mercado Livre ou colar linhas manualmente. Modelo Mercado Livre: title,category,price,product_url,affiliate_url,image_url,old_price,rating,sold_count,seller_name. Limite: 200 linhas.
         </p>
         <button className="rounded-xl bg-green-600 px-5 py-3 text-xs font-black uppercase text-white">
           Importar lote

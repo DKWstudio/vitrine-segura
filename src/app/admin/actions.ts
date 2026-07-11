@@ -165,6 +165,57 @@ function isShopeeCsvHeader(line: string) {
   const normalized = line.toLowerCase();
   return normalized.includes("item id") && normalized.includes("offer link") && normalized.includes("product link");
 }
+function isMercadoLivreCsvHeader(line: string) {
+  const normalized = line.toLowerCase();
+  return normalized.includes("title") && normalized.includes("product_url") && normalized.includes("price");
+}
+
+function parseMercadoLivreCsvProductLine(line: string, lineNumber: number) {
+  const [title, category, priceRaw, productUrl, affiliateUrl, imageUrl, oldPriceRaw, ratingRaw, soldCountRaw, sellerName] = parseCsvLine(line);
+
+  if (!title || !category || !priceRaw || !productUrl) {
+    throw new Error(`Linha ${lineNumber}: CSV Mercado Livre sem title, category, price ou product_url.`);
+  }
+
+  const price = parseBulkNumber(priceRaw);
+
+  if (price === null || price < 0) {
+    throw new Error(`Linha ${lineNumber}: preco invalido no CSV Mercado Livre.`);
+  }
+
+  const oldPrice = parseBulkNumber(oldPriceRaw);
+  const rating = parseBulkNumber(ratingRaw);
+  const soldCount = parseBulkNumber(soldCountRaw);
+  const now = new Date().toISOString();
+
+  return {
+    source: "mercadolivre" as ProductSource,
+    external_id: `ml-${hashText(productUrl)}`,
+    title,
+    description: null,
+    category,
+    price,
+    old_price: oldPrice,
+    currency: "BRL",
+    image_url: imageUrl || null,
+    product_url: productUrl,
+    affiliate_url: affiliateUrl || null,
+    rating,
+    reviews_count: null,
+    sold_count: soldCount === null ? null : Math.trunc(soldCount),
+    seller_name: sellerName || null,
+    seller_reputation: null,
+    is_active: true,
+    is_featured: false,
+    score: calculateProductScore({
+      price,
+      rating,
+      sold_count: soldCount === null ? null : Math.trunc(soldCount),
+      seller_reputation: null,
+    }),
+    last_checked_at: now,
+  };
+}
 
 function parseShopeeCsvProductLine(line: string, lineNumber: number, category: string) {
   const [itemId, itemName, priceRaw, salesRaw, storeName, , , productLink, offerLink] = parseCsvLine(line);
@@ -412,16 +463,19 @@ export async function importBulkProducts(formData: FormData) {
   const errors: string[] = [];
 
   const isShopeeCsv = lines.some((line) => isShopeeCsvHeader(line));
+  const isMercadoLivreCsv = lines.some((line) => isMercadoLivreCsvHeader(line));
 
   for (const [index, line] of lines.entries()) {
     try {
-      if (isShopeeCsvHeader(line)) {
+      if (isShopeeCsvHeader(line) || isMercadoLivreCsvHeader(line)) {
         continue;
       }
 
       const product = isShopeeCsv
         ? parseShopeeCsvProductLine(line, index + 1, defaultCategory)
-        : parseBulkProductLine(line, index + 1);
+        : isMercadoLivreCsv
+          ? parseMercadoLivreCsvProductLine(line, index + 1)
+          : parseBulkProductLine(line, index + 1);
 
       if (product) {
         products.push(product);
