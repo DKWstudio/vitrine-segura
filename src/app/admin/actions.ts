@@ -317,6 +317,97 @@ function parseShopeeCsvProductLine(line: string, lineNumber: number, category: s
   };
 }
 
+function parseSheinSoldCount(value: string) {
+  const match = value.match(/(\d+(?:[.,]\d+)?)\s*(mil)?\+?\s*vendido/i);
+
+  if (!match) {
+    return null;
+  }
+
+  const parsed = Number(match[1].replace(".", "").replace(",", "."));
+
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  return Math.trunc(parsed * (match[2] ? 1000 : 1));
+}
+
+function parseSheinOfferText(rawText: string, category: string) {
+  const lines = rawText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const products = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const urlMatch = lines[index].match(/https?:\/\/onelink\.shein\.com\/\S+/i);
+
+    if (!urlMatch) {
+      continue;
+    }
+
+    const affiliateUrl = urlMatch[0];
+    const detailsLine = /pre(?:c|\u00e7)o\s*\[/i.test(lines[index])
+      ? lines[index]
+      : lines.slice(Math.max(0, index - 3), index).reverse().find((line) => /pre(?:c|\u00e7)o\s*\[/i.test(line));
+
+    if (!detailsLine) {
+      continue;
+    }
+
+    const priceMatch = detailsLine.match(/pre(?:c|\u00e7)o\s*\[\s*R\$\s*([^\]]+)\]/i);
+    const price = parseBulkNumber(priceMatch?.[1]);
+
+    if (price === null || price < 0) {
+      continue;
+    }
+
+    const title = detailsLine
+      .replace(/^.*?pre(?:c|\u00e7)o\s*\[[^\]]+\]/i, "")
+      .replace(/^\s*-?\d+%\s*/i, "")
+      .replace(/\s+\d+(?:[.,]\d+)?\+?\s*(?:mil\s+)?vendido.*$/i, "")
+      .replace(/^[^\p{L}\p{N}]+/u, "")
+      .trim();
+
+    if (!title) {
+      continue;
+    }
+
+    const soldCount = parseSheinSoldCount(detailsLine);
+    const now = new Date().toISOString();
+
+    products.push({
+      source: "shein" as ProductSource,
+      external_id: `shein-${hashText(affiliateUrl)}`,
+      title,
+      description: null,
+      category,
+      price,
+      old_price: null,
+      currency: "BRL",
+      image_url: null,
+      product_url: affiliateUrl,
+      affiliate_url: affiliateUrl,
+      rating: null,
+      reviews_count: null,
+      sold_count: soldCount,
+      seller_name: "Shein",
+      seller_reputation: null,
+      is_active: true,
+      is_featured: false,
+      score: calculateProductScore({
+        price,
+        rating: null,
+        sold_count: soldCount,
+        seller_reputation: null,
+      }),
+      last_checked_at: now,
+    });
+  }
+
+  return products;
+}
 function parseBulkProductLine(line: string, lineNumber: number) {
   const cells = splitBulkLine(line);
   const [sourceRaw, category, title, priceRaw, productUrl, affiliateUrl, imageUrl, oldPriceRaw, ratingRaw, soldCountRaw, sellerName] = cells;
@@ -514,15 +605,17 @@ export async function importBulkProducts(formData: FormData) {
     redirectWithAdminMessage("notice_error", "Importe no maximo 200 produtos por vez.");
   }
 
-  const products = [];
+  const sheinTextProducts = rawProducts.includes("onelink.shein.com") ? parseSheinOfferText(rawProducts, defaultCategory) : [];
+  const products: Array<Record<string, unknown>> = [...sheinTextProducts];
   const errors: string[] = [];
 
-  const isShopeeCsv = lines.some((line) => isShopeeCsvHeader(line));
-  const isMercadoLivreCsv = lines.some((line) => isMercadoLivreCsvHeader(line));
+  const isSheinOfferText = sheinTextProducts.length > 0;
+  const isShopeeCsv = !isSheinOfferText && lines.some((line) => isShopeeCsvHeader(line));
+  const isMercadoLivreCsv = !isSheinOfferText && lines.some((line) => isMercadoLivreCsvHeader(line));
 
   for (const [index, line] of lines.entries()) {
     try {
-      if (isShopeeCsvHeader(line) || isMercadoLivreCsvHeader(line)) {
+      if (isSheinOfferText || isShopeeCsvHeader(line) || isMercadoLivreCsvHeader(line)) {
         continue;
       }
 

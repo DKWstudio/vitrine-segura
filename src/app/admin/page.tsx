@@ -448,15 +448,15 @@ function BulkImportForm() {
       <div className="grid gap-3 text-sm text-green-950 md:grid-cols-3">
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-green-700">Importacao em lote</p>
-          <p className="mt-1 font-semibold">Envie CSV Shopee oficial ou planilha manual Mercado Livre/Shein preparada.</p>
+          <p className="mt-1 font-semibold">Envie CSV Shopee oficial, planilha manual ou cole blocos de oferta Shein do painel afiliado.</p>
         </div>
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-green-700">Colunas</p>
-          <p className="mt-1 font-medium">Manual: source, category, title, price, product_url, affiliate_url, image_url, old_price, rating, sold_count, seller_name</p>
+          <p className="mt-1 font-medium">Manual: source, category, title, price, product_url, affiliate_url, image_url, old_price, rating, sold_count, seller_name. Shein: cole o texto com Preco[R$...] e onelink.shein.com.</p>
         </div>
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-green-700">Duplicados</p>
-          <p className="mt-1 font-medium">CSV Shopee: usa o arquivo oficial. Mercado Livre/Shein: use a planilha manual no modelo acima.</p>
+          <p className="mt-1 font-medium">CSV Shopee: usa o arquivo oficial. Shein: deduplica pelo link afiliado colado. Mercado Livre: use planilha manual.</p>
         </div>
       </div>
 
@@ -481,9 +481,18 @@ function BulkImportForm() {
         </label>
       </div>
 
+      <label className="block rounded-xl border border-green-200 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-green-700">
+        Colar texto Shein ou linhas manuais
+        <textarea
+          name="bulk_products"
+          rows={6}
+          placeholder={"Cole aqui blocos da Shein, por exemplo:\nPreco[R$147,74] -4% Sueter de Trico ... 300+ vendido\nhttps://onelink.shein.com/42/5vjdu621bjgf"}
+          className="mt-2 w-full resize-y border-0 p-0 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none placeholder:text-slate-400"
+        />
+      </label>
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <p className="text-xs font-medium text-green-800">
-          Envie CSV Shopee ou planilha manual para Mercado Livre/Shein. Use apenas links afiliados oficiais. Limite: 200 linhas por importacao.
+          Envie CSV Shopee, planilha manual ou texto de ofertas Shein. Use apenas links afiliados oficiais. Limite: 200 linhas por importacao.
         </p>
         <button className="rounded-xl bg-green-600 px-5 py-3 text-xs font-black uppercase text-white">
           Importar lote
