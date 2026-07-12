@@ -23,7 +23,7 @@ interface PublicProductCollectionProps {
 export function getSourceFromParam(value: string | string[] | undefined): "all" | ProductSource {
   const source = Array.isArray(value) ? value[0] : value;
 
-  if (source === "mercadolivre" || source === "shopee") {
+  if (source === "mercadolivre" || source === "shopee" || source === "shein") {
     return source;
   }
 
@@ -98,6 +98,7 @@ export default function PublicProductCollection({
         { href: "/", label: "Todos", active: false, className: "text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700" },
         { href: "/mercadolivre", label: "Mercado Livre", active: selectedSource === "mercadolivre", className: "text-blue-700 hover:border-blue-200 hover:bg-blue-50" },
         { href: "/shopee", label: "Shopee", active: selectedSource === "shopee", className: "text-orange-700 hover:border-orange-200 hover:bg-orange-50" },
+        { href: "/shein", label: "Shein", active: selectedSource === "shein", className: "text-pink-700 hover:border-pink-200 hover:bg-pink-50" },
       ];
 
 

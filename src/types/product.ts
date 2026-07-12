@@ -1,4 +1,4 @@
-export type ProductSource = "mercadolivre" | "shopee";
+export type ProductSource = "mercadolivre" | "shopee" | "shein";
 
 export interface Product {
   id: string;

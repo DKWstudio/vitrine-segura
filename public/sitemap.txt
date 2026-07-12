@@ -1,6 +1,7 @@
 https://vitrine-segura.vercel.app/
 https://vitrine-segura.vercel.app/mercadolivre
 https://vitrine-segura.vercel.app/shopee
+https://vitrine-segura.vercel.app/shein
 https://vitrine-segura.vercel.app/ofertas/ate-50
 https://vitrine-segura.vercel.app/ofertas/ate-100
 https://vitrine-segura.vercel.app/categoria/calcados-roupas-e-bolsas

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -17,6 +17,7 @@ const sourceOptions: Array<{ id: "all" | ProductSource; label: string }> = [
   { id: "all", label: "Todos" },
   { id: "mercadolivre", label: "Mercado Livre" },
   { id: "shopee", label: "Shopee" },
+  { id: "shein", label: "Shein" },
 ];
 
 function formatPrice(price: number) {

@@ -52,7 +52,7 @@ function toNumber(value: unknown) {
 function normalizeRule(rule: Record<string, unknown>): SearchRule {
   return {
     id: String(rule.id),
-    source: rule.source === "shopee" ? "shopee" : "mercadolivre",
+    source: rule.source === "shopee" || rule.source === "shein" ? rule.source : "mercadolivre",
     category: String(rule.category),
     query: String(rule.query),
     min_price: toNumber(rule.min_price),
@@ -116,7 +116,7 @@ async function getAdminData() {
     const joinedProduct = Array.isArray(click.products) ? click.products[0] : click.products;
     const savedProduct = productsById.get(productId);
     const title = savedProduct?.title || (joinedProduct && "title" in joinedProduct ? String(joinedProduct.title) : "Produto removido");
-    const source: ProductSource = savedProduct?.source || (click.source === "shopee" ? "shopee" : "mercadolivre");
+    const source: ProductSource = savedProduct?.source || (click.source === "shopee" || click.source === "shein" ? click.source : "mercadolivre");
     const current = clickMap.get(productId);
 
     if (current) {
@@ -145,6 +145,7 @@ async function getAdminData() {
       activeProducts: products.filter((product) => product.is_active).length,
       shopeeProducts: products.filter((product) => product.source === "shopee").length,
       mercadoLivreProducts: products.filter((product) => product.source === "mercadolivre").length,
+      sheinProducts: products.filter((product) => product.source === "shein").length,
       totalClicks: clicksResult.data?.length || 0,
       clicksLast7Days,
       withoutAffiliate: products.filter((product) => !product.affiliate_url).length,
@@ -213,7 +214,7 @@ function formatShortDate(value: string | null) {
   return date.toLocaleDateString("pt-BR");
 }
 
-type ProductAdminFilter = "all" | "shopee" | "mercadolivre" | "without_affiliate" | "featured" | "inactive" | "without_image" | "without_clicks" | "popular_without_featured" | "stale_review";
+type ProductAdminFilter = "all" | "shopee" | "mercadolivre" | "shein" | "without_affiliate" | "featured" | "inactive" | "without_image" | "without_clicks" | "popular_without_featured" | "stale_review";
 
 function getProductAdminFilter(value: string | string[] | undefined): ProductAdminFilter {
   const filter = Array.isArray(value) ? value[0] : value;
@@ -221,6 +222,7 @@ function getProductAdminFilter(value: string | string[] | undefined): ProductAdm
   if (
     filter === "shopee" ||
     filter === "mercadolivre" ||
+    filter === "shein" ||
     filter === "without_affiliate" ||
     filter === "featured" ||
     filter === "inactive" ||
@@ -250,6 +252,9 @@ function filterAdminProducts(
       break;
     case "mercadolivre":
       filteredProducts = products.filter((product) => product.source === "mercadolivre");
+      break;
+    case "shein":
+      filteredProducts = products.filter((product) => product.source === "shein");
       break;
     case "without_affiliate":
       filteredProducts = products.filter((product) => !product.affiliate_url);
@@ -379,6 +384,7 @@ function ProductFields({ product }: { product?: AffiliateProduct }) {
       <select name="source" defaultValue={product?.source || "mercadolivre"} className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-2">
         <option value="mercadolivre">Mercado Livre</option>
         <option value="shopee">Shopee</option>
+        <option value="shein">Shein</option>
       </select>
       <input name="external_id" defaultValue={product?.external_id || ""} placeholder="ID externo opcional" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-2" />
       <input name="title" required defaultValue={product?.title || ""} placeholder="Titulo do produto" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-4" />
@@ -427,10 +433,10 @@ function ImportMercadoLivreForm() {
       </label>
       <div className="md:col-span-12 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <p className="text-xs font-medium text-blue-800">
-          Use link completo com ID MLB. Links curtos como mercadolivre.com/sec podem nao funcionar.
+          Mercado Livre: use apenas links oficiais gerados no painel. A contabilizacao pode nao ocorrer em vitrine externa; a lista de recomendacoes do painel e o caminho mais seguro.
         </p>
         <button className="rounded-xl bg-blue-600 px-5 py-3 text-xs font-black uppercase text-white">
-          Importar dados do Mercado Livre
+          Tentar importar Mercado Livre
         </button>
       </div>
     </form>
@@ -442,15 +448,15 @@ function BulkImportForm() {
       <div className="grid gap-3 text-sm text-green-950 md:grid-cols-3">
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-green-700">Importacao em lote</p>
-          <p className="mt-1 font-semibold">Envie um CSV da Shopee ou um CSV Mercado Livre preparado.</p>
+          <p className="mt-1 font-semibold">Envie CSV Shopee oficial ou planilha manual Mercado Livre/Shein preparada.</p>
         </div>
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-green-700">Colunas</p>
-          <p className="mt-1 font-medium">Mercado Livre: title, category, price, product_url, affiliate_url, image_url, old_price, rating, sold_count, seller_name</p>
+          <p className="mt-1 font-medium">Manual: source, category, title, price, product_url, affiliate_url, image_url, old_price, rating, sold_count, seller_name</p>
         </div>
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-green-700">Duplicados</p>
-          <p className="mt-1 font-medium">CSV Shopee: usa o arquivo oficial. CSV Mercado Livre: usa a planilha no modelo acima.</p>
+          <p className="mt-1 font-medium">CSV Shopee: usa o arquivo oficial. Mercado Livre/Shein: use a planilha manual no modelo acima.</p>
         </div>
       </div>
 
@@ -477,7 +483,7 @@ function BulkImportForm() {
 
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <p className="text-xs font-medium text-green-800">
-          Envie CSV Shopee ou CSV Mercado Livre. Para Mercado Livre, monte uma planilha com o cabecalho indicado acima. Limite: 200 linhas por importacao.
+          Envie CSV Shopee ou planilha manual para Mercado Livre/Shein. Use apenas links afiliados oficiais. Limite: 200 linhas por importacao.
         </p>
         <button className="rounded-xl bg-green-600 px-5 py-3 text-xs font-black uppercase text-white">
           Importar lote
@@ -491,12 +497,12 @@ function ManualProductForm() {
     <form action={createManualProduct} className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
       <div className="grid gap-3 rounded-xl border border-orange-100 bg-orange-50 p-4 text-sm text-orange-950 md:grid-cols-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-widest text-orange-700">Shopee manual</p>
-          <p className="mt-1 font-semibold">Use source Shopee e cole o link afiliado gerado no painel da Shopee.</p>
+          <p className="text-xs font-black uppercase tracking-widest text-orange-700">Curadoria manual</p>
+          <p className="mt-1 font-semibold">Use Mercado Livre ou Shein apenas com links oficiais. Shopee pode ser manual ou API.</p>
         </div>
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-orange-700">Link original</p>
-          <p className="mt-1 font-medium">Pode ser o link normal do produto na Shopee, usado apenas como fallback.</p>
+          <p className="mt-1 font-medium">Cole o link normal do produto na loja. Ele e usado como fallback se nao houver afiliado.</p>
         </div>
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-orange-700">Link afiliado</p>
@@ -521,13 +527,14 @@ function AdminStats({ stats }: { stats: Awaited<ReturnType<typeof getAdminData>>
     { label: "Ativos", value: stats.activeProducts },
     { label: "Mercado Livre", value: stats.mercadoLivreProducts },
     { label: "Shopee", value: stats.shopeeProducts },
+    { label: "Shein", value: stats.sheinProducts },
     { label: "Cliques 7 dias", value: stats.clicksLast7Days },
     { label: "Sem afiliado", value: stats.withoutAffiliate, tone: "warning" },
     { label: "Cliques totais", value: stats.totalClicks },
   ];
 
   return (
-    <section className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
+    <section className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-8">
       {items.map((item) => (
         <div
           key={item.label}
@@ -561,6 +568,7 @@ function ProductFilterTabs({
   const filters: Array<{ id: ProductAdminFilter; label: string; count: number; tone?: "warning" }> = [
     { id: "all", label: "Todos", count: products.length },
     { id: "shopee", label: "Shopee", count: products.filter((product) => product.source === "shopee").length },
+    { id: "shein", label: "Shein", count: products.filter((product) => product.source === "shein").length },
     {
       id: "mercadolivre",
       label: "Mercado Livre",
@@ -707,6 +715,12 @@ function GrowthReportPanel({ products }: { products: AffiliateProduct[] }) {
       color: "bg-orange-500",
       badge: "bg-orange-50 text-orange-700",
     },
+    {
+      label: "Shein",
+      count: products.filter((product) => product.source === "shein").length,
+      color: "bg-pink-500",
+      badge: "bg-pink-50 text-pink-700",
+    },
   ];
   const categories = Array.from(
     products.reduce((map, product) => map.set(product.category, (map.get(product.category) || 0) + 1), new Map<string, number>()),
@@ -719,7 +733,7 @@ function GrowthReportPanel({ products }: { products: AffiliateProduct[] }) {
         <p className="text-sm text-slate-500">Acompanhe a meta inicial de 100 produtos por plataforma e a distribuicao por categoria.</p>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-3">
         {sourceItems.map((item) => {
           const progress = Math.min(100, Math.round((item.count / target) * 100));
 
@@ -1138,6 +1152,11 @@ export default async function AdminPage({
 
         <AdminStats stats={data.stats} />
 
+        <section className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-black uppercase tracking-wide">Mercado Livre em modo curadoria</p>
+          <p className="mt-1 font-medium">Use apenas links oficiais gerados no painel de afiliados. O proprio suporte informou que a contabilizacao pode nao ocorrer em vitrine externa; a lista de recomendacoes do painel e o caminho mais seguro.</p>
+        </section>
+
         <CatalogMaintenancePanel
           products={data.products}
           clickCountsByProduct={data.clickCountsByProduct}
@@ -1158,7 +1177,7 @@ export default async function AdminPage({
         <section className="space-y-4">
           <div>
             <h2 className="text-xl font-black uppercase">Regras de busca</h2>
-            <p className="text-sm text-slate-500">Shopee busca por palavra-chave usando mais recentes; sem termo, prioriza maior comissao. Mercado Livre segue limitado enquanto a API de busca estiver bloqueada.</p>
+            <p className="text-sm text-slate-500">Shopee busca por palavra-chave usando a API. Mercado Livre e Shein devem ser mantidos por curadoria manual com links oficiais.</p>
           </div>
           <RuleForm />
           <div className="space-y-3">
@@ -1266,3 +1285,4 @@ export default async function AdminPage({
     </main>
   );
 }
+

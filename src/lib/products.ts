@@ -1,7 +1,7 @@
 import { products as localProducts } from "@/data/products";
 import { createPublicSupabaseClient } from "@/lib/supabase/client";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
-import type { AffiliateProduct, Product } from "@/types/product";
+import type { AffiliateProduct, Product, ProductSource } from "@/types/product";
 
 export const productColumns = `
   id,
@@ -34,10 +34,14 @@ function toNumber(value: number | string | null): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function normalizeProductSource(value: unknown): ProductSource {
+  return value === "shopee" || value === "shein" ? value : "mercadolivre";
+}
+
 export function normalizeSupabaseProduct(product: Record<string, unknown>): AffiliateProduct {
   return {
     id: String(product.id),
-    source: product.source === "shopee" ? "shopee" : "mercadolivre",
+    source: normalizeProductSource(product.source),
     external_id: String(product.external_id),
     title: String(product.title),
     description: product.description ? String(product.description) : null,

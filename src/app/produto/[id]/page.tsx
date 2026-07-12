@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, CheckCircle, Shield, ShoppingBag, Star, Truck } from "lucide-react";
@@ -122,7 +122,7 @@ export default async function ProductPage({
   }
 
   const relatedProducts = await getRelatedProducts(product, 4);
-  const sourceLabel = product.source === "shopee" ? "Shopee" : "Mercado Livre";
+  const sourceLabel = product.source === "shopee" ? "Shopee" : product.source === "shein" ? "Shein" : "Mercado Livre";
   const productJsonLd = buildProductJsonLd(product, sourceLabel);
   const shareUrl = absoluteUrl(`/produto/${product.id}`);
 

@@ -74,7 +74,9 @@ function getMercadoLivreImportErrorMessage(error: unknown, itemId: string) {
 }
 
 function normalizeSource(value: string): ProductSource {
-  return value === "shopee" ? "shopee" : "mercadolivre";
+  if (value === "shopee") return "shopee";
+  if (value === "shein") return "shein";
+  return "mercadolivre";
 }
 
 const needsReviewDate = "2000-01-01T00:00:00.000Z";
@@ -926,3 +928,4 @@ export async function updateSearchRule(formData: FormData) {
 
   revalidatePath("/admin");
 }
+
