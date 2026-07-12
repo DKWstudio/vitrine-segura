@@ -375,20 +375,36 @@ function RuleForm({ rule }: { rule?: SearchRule }) {
   );
 }
 
-function ProductFields({ product }: { product?: AffiliateProduct }) {
+function ProductFields({ product, fixedSource, defaultCategory = "Casa", accent = "blue" }: { product?: AffiliateProduct; fixedSource?: ProductSource; defaultCategory?: string; accent?: "blue" | "orange" | "black" }) {
+  const selectedSource = fixedSource || product?.source || "mercadolivre";
+  const linkAccentClass = accent === "orange"
+    ? "border-orange-200 bg-orange-50 text-orange-700"
+    : accent === "black"
+      ? "border-slate-300 bg-slate-50 text-slate-950"
+      : "border-blue-200 bg-blue-50 text-blue-700";
+
   return (
     <>
       {product ? <input type="hidden" name="id" value={product.id} /> : null}
       {product ? <input type="hidden" name="current_external_id" value={product.external_id} /> : null}
 
-      <select name="source" defaultValue={product?.source || "mercadolivre"} className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-2">
-        <option value="mercadolivre">Mercado Livre</option>
-        <option value="shopee">Shopee</option>
-        <option value="shein">Shein</option>
-      </select>
+      {fixedSource ? (
+        <>
+          <input type="hidden" name="source" value={fixedSource} />
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black uppercase text-slate-700 md:col-span-2">
+            {fixedSource === "mercadolivre" ? "Mercado Livre" : fixedSource === "shopee" ? "Shopee" : "Shein"}
+          </div>
+        </>
+      ) : (
+        <select name="source" defaultValue={selectedSource} className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-2">
+          <option value="mercadolivre">Mercado Livre</option>
+          <option value="shopee">Shopee</option>
+          <option value="shein">Shein</option>
+        </select>
+      )}
       <input name="external_id" defaultValue={product?.external_id || ""} placeholder="ID externo opcional" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-2" />
       <input name="title" required defaultValue={product?.title || ""} placeholder="Titulo do produto" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-4" />
-      <input name="category" list="admin-category-options" required defaultValue={product?.category || "Casa"} placeholder="Categoria" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-2" />
+      <input name="category" list="admin-category-options" required defaultValue={product?.category || defaultCategory} placeholder="Categoria" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-2" />
       <input name="price" required type="number" step="0.01" min="0" defaultValue={product?.price ?? ""} placeholder="Preco" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
       <input name="old_price" type="number" step="0.01" min="0" defaultValue={product?.old_price ?? ""} placeholder="Preco antigo" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
       <textarea name="description" defaultValue={product?.description || ""} placeholder="Descricao curta" className="min-h-20 rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-12" />
@@ -397,9 +413,9 @@ function ProductFields({ product }: { product?: AffiliateProduct }) {
         Link original do produto
         <input name="product_url" required defaultValue={product?.product_url || ""} placeholder="Link do produto na loja" className="mt-1 w-full border-0 p-0 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none placeholder:text-slate-400" />
       </label>
-      <label className="block rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-black uppercase tracking-wider text-blue-700 md:col-span-6">
+      <label className={`block rounded-lg border px-3 py-2 text-xs font-black uppercase tracking-wider md:col-span-6 ${linkAccentClass}`}>
         Link afiliado oficial
-        <input name="affiliate_url" defaultValue={product?.affiliate_url || ""} placeholder="Cole aqui o link gerado no painel de afiliados" className="mt-1 w-full border-0 bg-transparent p-0 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none placeholder:text-blue-400" />
+        <input name="affiliate_url" defaultValue={product?.affiliate_url || ""} placeholder="Cole aqui o link gerado no painel de afiliados" className="mt-1 w-full border-0 bg-transparent p-0 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none placeholder:text-slate-400" />
       </label>
       <ShopeeAffiliateWarning />
       <input name="currency" defaultValue={product?.currency || "BRL"} placeholder="Moeda" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-1" />
@@ -419,7 +435,6 @@ function ProductFields({ product }: { product?: AffiliateProduct }) {
     </>
   );
 }
-
 function ImportMercadoLivreForm() {
   return (
     <form action={importMercadoLivreProduct} className="grid gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4 md:grid-cols-12">
@@ -442,92 +457,137 @@ function ImportMercadoLivreForm() {
     </form>
   );
 }
-function BulkImportForm() {
+function ShopeeImportForm() {
   return (
-    <form action={importBulkProducts} className="space-y-4 rounded-xl border border-green-100 bg-green-50 p-4">
-      <div className="grid gap-3 text-sm text-green-950 md:grid-cols-3">
-        <div>
-          <p className="text-xs font-black uppercase tracking-widest text-green-700">Importacao em lote</p>
-          <p className="mt-1 font-semibold">Envie CSV Shopee oficial, planilha manual ou cole blocos de oferta Shein do painel afiliado.</p>
-        </div>
-        <div>
-          <p className="text-xs font-black uppercase tracking-widest text-green-700">Colunas</p>
-          <p className="mt-1 font-medium">Manual: source, category, title, price, product_url, affiliate_url, image_url, old_price, rating, sold_count, seller_name. Shein: cole o texto com Preco[R$...] e onelink.shein.com.</p>
-        </div>
-        <div>
-          <p className="text-xs font-black uppercase tracking-widest text-green-700">Duplicados</p>
-          <p className="mt-1 font-medium">CSV Shopee: usa o arquivo oficial. Shein: deduplica pelo link afiliado colado. Mercado Livre: use planilha manual.</p>
-        </div>
+    <form action={importBulkProducts} className="space-y-3 rounded-xl border border-orange-200 bg-orange-50 p-4">
+      <div>
+        <p className="text-xs font-black uppercase tracking-widest text-orange-700">Shopee em lote</p>
+        <p className="mt-1 text-sm font-semibold text-orange-950">Envie o CSV oficial da Shopee. A categoria padrao sera aplicada aos itens importados.</p>
       </div>
-
       <div className="grid gap-3 md:grid-cols-3">
-        <label className="block rounded-xl border border-green-200 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-green-700 md:col-span-1">
+        <label className="block rounded-xl border border-orange-200 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-orange-700 md:col-span-1">
           Categoria padrao
-          <input
-            name="bulk_category"
-            list="admin-category-options"
-            defaultValue="Beleza"
-            className="mt-1 w-full border-0 p-0 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none"
-          />
+          <input name="bulk_category" list="admin-category-options" defaultValue="Casa" className="mt-1 w-full border-0 p-0 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none" />
         </label>
-        <label className="block rounded-xl border border-green-200 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-green-700 md:col-span-2">
-          Arquivo CSV
-          <input
-            name="bulk_file"
-            type="file"
-            accept=".csv,text/csv"
-            className="mt-1 w-full text-sm font-medium normal-case tracking-normal text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-green-600 file:px-3 file:py-2 file:text-xs file:font-black file:uppercase file:text-white"
-          />
+        <label className="block rounded-xl border border-orange-200 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-orange-700 md:col-span-2">
+          CSV oficial Shopee
+          <input name="bulk_file" type="file" accept=".csv,text/csv" className="mt-1 w-full text-sm font-medium normal-case tracking-normal text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-orange-600 file:px-3 file:py-2 file:text-xs file:font-black file:uppercase file:text-white" />
         </label>
       </div>
+      <button className="rounded-xl bg-orange-600 px-5 py-3 text-xs font-black uppercase text-white">
+        Importar CSV Shopee
+      </button>
+    </form>
+  );
+}
 
-      <label className="block rounded-xl border border-green-200 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-green-700">
-        Colar texto Shein ou linhas manuais
+function SheinImportForm() {
+  return (
+    <form action={importBulkProducts} className="space-y-3 rounded-xl border border-slate-800 bg-slate-950 p-4 text-white">
+      <div>
+        <p className="text-xs font-black uppercase tracking-widest text-slate-300">Shein por texto afiliado</p>
+        <p className="mt-1 text-sm font-semibold text-slate-100">Cole os blocos copiados do painel Shein. O sistema extrai titulo, preco, vendidos e link afiliado.</p>
+      </div>
+      <label className="block rounded-xl border border-white/10 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-slate-700">
+        Categoria padrao
+        <input name="bulk_category" list="admin-category-options" defaultValue="Moda" className="mt-1 w-full border-0 p-0 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none" />
+      </label>
+      <label className="block rounded-xl border border-white/10 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-slate-700">
+        Texto da oferta Shein
         <textarea
           name="bulk_products"
-          rows={6}
+          rows={7}
           placeholder={"Cole aqui blocos da Shein, por exemplo:\nPreco[R$147,74] -4% Sueter de Trico ... 300+ vendido\nhttps://onelink.shein.com/42/5vjdu621bjgf"}
           className="mt-2 w-full resize-y border-0 p-0 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none placeholder:text-slate-400"
         />
       </label>
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <p className="text-xs font-medium text-green-800">
-          Envie CSV Shopee, planilha manual ou texto de ofertas Shein. Use apenas links afiliados oficiais. Limite: 200 linhas por importacao.
-        </p>
-        <button className="rounded-xl bg-green-600 px-5 py-3 text-xs font-black uppercase text-white">
-          Importar lote
-        </button>
-      </div>
+      <button className="rounded-xl bg-white px-5 py-3 text-xs font-black uppercase text-slate-950">
+        Importar ofertas Shein
+      </button>
     </form>
   );
 }
-function ManualProductForm() {
-  return (
-    <form action={createManualProduct} className="space-y-4 rounded-xl border border-slate-200 bg-white p-4">
-      <div className="grid gap-3 rounded-xl border border-orange-100 bg-orange-50 p-4 text-sm text-orange-950 md:grid-cols-3">
-        <div>
-          <p className="text-xs font-black uppercase tracking-widest text-orange-700">Curadoria manual</p>
-          <p className="mt-1 font-semibold">Use Mercado Livre ou Shein apenas com links oficiais. Shopee pode ser manual ou API.</p>
-        </div>
-        <div>
-          <p className="text-xs font-black uppercase tracking-widest text-orange-700">Link original</p>
-          <p className="mt-1 font-medium">Cole o link normal do produto na loja. Ele e usado como fallback se nao houver afiliado.</p>
-        </div>
-        <div>
-          <p className="text-xs font-black uppercase tracking-widest text-orange-700">Link afiliado</p>
-          <p className="mt-1 font-medium">E o link principal de saida. Ele sera usado pela rota /go/[id].</p>
-        </div>
-      </div>
 
+function PlatformManualProductForm({ source, title, description, defaultCategory, accent, buttonClass, panelClass, eyebrowClass }: { source: ProductSource; title: string; description: string; defaultCategory: string; accent: "blue" | "orange" | "black"; buttonClass: string; panelClass: string; eyebrowClass: string }) {
+  return (
+    <form action={createManualProduct} className={`space-y-4 rounded-xl border p-4 ${panelClass}`}>
+      <div>
+        <p className={`text-xs font-black uppercase tracking-widest ${eyebrowClass}`}>Cadastro manual</p>
+        <h3 className="mt-1 text-lg font-black uppercase text-slate-950">{title}</h3>
+        <p className="mt-1 text-sm font-semibold text-slate-600">{description}</p>
+      </div>
       <div className="grid gap-3 md:grid-cols-12">
-        <ProductFields />
+        <ProductFields fixedSource={source} defaultCategory={defaultCategory} accent={accent} />
         <div className="md:col-span-12">
-          <button className="rounded-xl bg-blue-600 px-5 py-3 text-xs font-black uppercase text-white">
-            Cadastrar produto
+          <button className={`rounded-xl px-5 py-3 text-xs font-black uppercase ${buttonClass}`}>
+            Cadastrar {title}
           </button>
         </div>
       </div>
     </form>
+  );
+}
+
+function PlatformProductForms() {
+  return (
+    <div className="grid gap-4 xl:grid-cols-3">
+      <section className="space-y-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+        <div>
+          <p className="text-xs font-black uppercase tracking-widest text-blue-700">Mercado Livre</p>
+          <h3 className="mt-1 text-xl font-black uppercase text-slate-950">Cadastro azul</h3>
+          <p className="mt-1 text-sm font-semibold text-blue-900">Use links oficiais do painel. A importacao automatica por API segue limitada pelo Mercado Livre.</p>
+        </div>
+        <ImportMercadoLivreForm />
+        <PlatformManualProductForm
+          source="mercadolivre"
+          title="Mercado Livre"
+          description="Para quando a API bloquear a consulta ou voce quiser cadastrar com dados revisados."
+          defaultCategory="Casa"
+          accent="blue"
+          panelClass="border-blue-100 bg-white"
+          eyebrowClass="text-blue-700"
+          buttonClass="bg-blue-600 text-white"
+        />
+      </section>
+
+      <section className="space-y-4 rounded-2xl border border-orange-200 bg-orange-50 p-4">
+        <div>
+          <p className="text-xs font-black uppercase tracking-widest text-orange-700">Shopee</p>
+          <h3 className="mt-1 text-xl font-black uppercase text-slate-950">Cadastro laranja</h3>
+          <p className="mt-1 text-sm font-semibold text-orange-950">Use API, CSV oficial ou cadastro manual quando quiser curadoria fina.</p>
+        </div>
+        <ShopeeImportForm />
+        <PlatformManualProductForm
+          source="shopee"
+          title="Shopee"
+          description="Use link afiliado oficial quando cadastrar fora da API."
+          defaultCategory="Casa"
+          accent="orange"
+          panelClass="border-orange-100 bg-white"
+          eyebrowClass="text-orange-700"
+          buttonClass="bg-orange-600 text-white"
+        />
+      </section>
+
+      <section className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950 p-4">
+        <div>
+          <p className="text-xs font-black uppercase tracking-widest text-slate-300">Shein</p>
+          <h3 className="mt-1 text-xl font-black uppercase text-white">Cadastro preto</h3>
+          <p className="mt-1 text-sm font-semibold text-slate-300">Cole ofertas do painel afiliado ou cadastre manualmente. Imagem continua opcional para revisao.</p>
+        </div>
+        <SheinImportForm />
+        <PlatformManualProductForm
+          source="shein"
+          title="Shein"
+          description="Ideal para ofertas com onelink.shein.com e curadoria visual depois."
+          defaultCategory="Moda"
+          accent="black"
+          panelClass="border-white/10 bg-white"
+          eyebrowClass="text-slate-500"
+          buttonClass="bg-slate-950 text-white"
+        />
+      </section>
+    </div>
   );
 }
 function AdminStats({ stats }: { stats: Awaited<ReturnType<typeof getAdminData>>["stats"] }) {
@@ -1175,12 +1235,10 @@ export default async function AdminPage({
 
         <section className="space-y-4">
           <div>
-            <h2 className="text-xl font-black uppercase">Cadastrar produto manual</h2>
-            <p className="text-sm text-slate-500">Use links oficiais e preencha affiliate_url apenas com link afiliado valido.</p>
+            <h2 className="text-xl font-black uppercase">Cadastrar por plataforma</h2>
+            <p className="text-sm text-slate-500">Cada plataforma tem seu proprio fluxo, cor e cuidado de afiliacao. Os produtos publicados continuam na lista unica abaixo.</p>
           </div>
-          <ImportMercadoLivreForm />
-          <BulkImportForm />
-          <ManualProductForm />
+          <PlatformProductForms />
         </section>
 
         <section className="space-y-4">
