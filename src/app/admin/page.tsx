@@ -530,7 +530,7 @@ function PlatformManualProductForm({ source, title, description, defaultCategory
 
 function PlatformProductForms() {
   return (
-    <div className="grid gap-4 xl:grid-cols-3">
+    <div className="space-y-4">
       <section className="space-y-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-blue-700">Mercado Livre</p>
