@@ -505,7 +505,7 @@ function SheinImportForm() {
       </div>
       <label className="block rounded-xl border border-white/10 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-slate-700">
         Categoria padrao
-        <input name="bulk_category" list="admin-category-options" defaultValue="Moda" className="mt-1 w-full border-0 p-0 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none" />
+        <input name="bulk_category" list="admin-category-options" defaultValue="J\u00f3ias & Rel\u00f3gios" className="mt-1 w-full border-0 p-0 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none" />
       </label>
       <label className="block rounded-xl border border-white/10 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-slate-700">
         Texto da oferta Shein
@@ -595,7 +595,7 @@ function PlatformProductForms() {
           source="shein"
           title="Shein"
           description="Ideal para ofertas com onelink.shein.com e curadoria visual depois."
-          defaultCategory="Moda"
+          defaultCategory="J\u00f3ias & Rel\u00f3gios"
           accent="black"
           panelClass="border-white/10 bg-white"
           eyebrowClass="text-slate-500"
