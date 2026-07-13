@@ -644,8 +644,22 @@ export async function importBulkProducts(formData: FormData) {
     redirectWithAdminMessage("notice_error", message);
   }
 
+  const uniqueProductsByKey = new Map<string, Record<string, unknown>>();
+  let duplicateCount = 0;
+
+  for (const product of products) {
+    const key = `${String(product.source)}:${String(product.external_id)}`;
+
+    if (uniqueProductsByKey.has(key)) {
+      duplicateCount += 1;
+    }
+
+    uniqueProductsByKey.set(key, product);
+  }
+
+  const productsToSave = Array.from(uniqueProductsByKey.values());
   const supabase = createServiceSupabaseClient();
-  const { error } = await supabase.from("products").upsert(products, {
+  const { error } = await supabase.from("products").upsert(productsToSave, {
     onConflict: "source,external_id",
     ignoreDuplicates: false,
   });
@@ -657,8 +671,18 @@ export async function importBulkProducts(formData: FormData) {
   revalidatePath("/admin");
   revalidatePath("/");
 
-  const warning = errors.length > 0 ? ` ${errors.length} linha(s) ignorada(s): ${errors.slice(0, 2).join(" ")}` : "";
-  redirectWithAdminMessage("notice_success", `${products.length} produto(s) importado(s) com sucesso.${warning}`);
+  const warningParts = [];
+
+  if (duplicateCount > 0) {
+    warningParts.push(`${duplicateCount} duplicado(s) ignorado(s)`);
+  }
+
+  if (errors.length > 0) {
+    warningParts.push(`${errors.length} linha(s) ignorada(s): ${errors.slice(0, 2).join(" ")}`);
+  }
+
+  const warning = warningParts.length > 0 ? ` ${warningParts.join(". ")}` : "";
+  redirectWithAdminMessage("notice_success", `${productsToSave.length} produto(s) importado(s) com sucesso.${warning}`);
 }
 export async function createManualProduct(formData: FormData) {
   await requireAdmin();
