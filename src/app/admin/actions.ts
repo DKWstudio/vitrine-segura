@@ -348,15 +348,21 @@ function parseSheinOfferText(rawText: string, category: string) {
     }
 
     const affiliateUrl = urlMatch[0];
-    const detailsLine = /pre(?:c|\u00e7)o\s*\[/i.test(lines[index])
-      ? lines[index]
-      : lines.slice(Math.max(0, index - 3), index).reverse().find((line) => /pre(?:c|\u00e7)o\s*\[/i.test(line));
+    const nearbyLines = lines.slice(Math.max(0, index - 8), index + 1);
+    const priceLineIndex = nearbyLines.findLastIndex((line) => /pre(?:c|\u00e7)o\s*\[/i.test(line));
 
-    if (!detailsLine) {
+    if (priceLineIndex === -1) {
       continue;
     }
 
-    const priceMatch = detailsLine.match(/pre(?:c|\u00e7)o\s*\[\s*R\$\s*([^\]]+)\]/i);
+    const priceLine = nearbyLines[priceLineIndex];
+    const titleLine = nearbyLines.slice(priceLineIndex + 1).find((line) =>
+      !/^https?:\/\//i.test(line) &&
+      !/cupom|oferta|promo(?:c|\u00e7)(?:a|\u00e3)o|novo usu(?:a|\u00e1)rio/i.test(line) &&
+      !/pre(?:c|\u00e7)o\s*\[/i.test(line),
+    );
+    const detailsLine = titleLine ? `${priceLine} ${titleLine}` : priceLine;
+    const priceMatch = priceLine.match(/pre(?:c|\u00e7)o\s*\[\s*R\$\s*([^\]]+)\]/i);
     const price = parseBulkNumber(priceMatch?.[1]);
 
     if (price === null || price < 0) {
