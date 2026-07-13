@@ -3,6 +3,4 @@ Allow: /
 Disallow: /admin
 Disallow: /api
 
-Sitemap: https://vitrine-segura.vercel.app/sitemap.txt
-Sitemap: https://vitrine-segura.vercel.app/sitemap-google.xml
 Sitemap: https://vitrine-segura.vercel.app/sitemap.xml
