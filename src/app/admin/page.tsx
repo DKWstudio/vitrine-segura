@@ -1137,133 +1137,138 @@ function ProductsTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-      <table className="min-w-[980px] w-full text-left text-sm">
-        <thead className="bg-slate-100 text-[11px] font-black uppercase tracking-widest text-slate-500">
-          <tr>
-            <th className="p-3">Produto</th>
-            <th className="p-3">Fonte</th>
-            <th className="p-3">Preco</th>
-            <th className="p-3">Status</th>
-            <th className="p-3">Afiliado rapido</th>
-            <th className="p-3">Acoes</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {products.map((product) => (
-            <Fragment key={product.id}>
-              <tr key={product.id} className={`align-top ${!product.affiliate_url ? "bg-amber-50/45" : ""}`}>
-                <td className="p-3">
-                  <div className="flex gap-3">
-                    {product.image_url ? <img src={product.image_url} alt="" className="h-14 w-14 rounded-lg object-contain" /> : null}
-                    <div>
-                      <p className="max-w-sm font-bold text-slate-900">{product.title}</p>
-                      <p className="mt-1 text-xs text-slate-500">{product.category}</p>
-                      <p className="mt-1 text-[10px] text-slate-400">{product.external_id}</p>
-                      {!product.affiliate_url ? (
-                        <p className="mt-2 inline-flex rounded-full bg-amber-100 px-2 py-1 text-[10px] font-black uppercase text-amber-700">
-                          Sem link afiliado
-                        </p>
-                      ) : null}
-                    </div>
+    <div className="space-y-3">
+      {products.map((product) => {
+        const clickCount = clickCountsByProduct[product.id] || 0;
+        const reviewLabel = formatShortDate(product.last_checked_at || product.created_at);
+
+        return (
+          <article
+            key={product.id}
+            className={`rounded-2xl border bg-white p-4 shadow-sm ${!product.affiliate_url ? "border-amber-200 ring-1 ring-amber-100" : "border-slate-200"}`}
+          >
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,440px)] xl:items-start">
+              <div className="flex min-w-0 gap-4">
+                <div className="flex h-20 w-20 flex-none items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-slate-50">
+                  {product.image_url ? (
+                    <img src={product.image_url} alt="" className="h-full w-full object-contain" />
+                  ) : (
+                    <span className="px-2 text-center text-[10px] font-black uppercase text-slate-400">Sem imagem</span>
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-wide">
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">{product.source}</span>
+                    <span className="rounded-full bg-green-50 px-2.5 py-1 text-green-700">{product.is_active ? "Ativo" : "Inativo"}</span>
+                    <span className={product.is_featured ? "rounded-full bg-amber-50 px-2.5 py-1 text-amber-700" : "rounded-full bg-slate-100 px-2.5 py-1 text-slate-500"}>
+                      {product.is_featured ? "Destaque" : "Normal"}
+                    </span>
+                    {needsCatalogReview(product) || hasForcedReview(product) ? (
+                      <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-700">Precisa revisao</span>
+                    ) : null}
+                    {!product.affiliate_url ? (
+                      <span className="rounded-full bg-amber-100 px-2.5 py-1 text-amber-700">Sem afiliado</span>
+                    ) : null}
+                    {clickCount > 0 ? (
+                      <span className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700">{clickCount} cliques</span>
+                    ) : null}
                   </div>
-                </td>
-                <td className="p-3 text-xs font-bold uppercase text-slate-500">{product.source}</td>
-                <td className="p-3 font-black">{formatCurrency(product.price)}</td>
-                <td className="p-3 text-xs font-bold">
-                  <span className={product.is_active ? "text-green-700" : "text-red-700"}>{product.is_active ? "Ativo" : "Inativo"}</span>
-                  <br />
-                  <span className={product.is_featured ? "text-amber-600" : "text-slate-400"}>{product.is_featured ? "Destaque" : "Normal"}</span>
-                  <br />
-                  <span className={needsCatalogReview(product) ? "text-amber-600" : "text-slate-400"}>Rev. {formatShortDate(product.last_checked_at || product.created_at)}</span>
-                  {hasForcedReview(product) ? (
-                    <>
-                      <br />
-                      <span className="text-red-700">Precisa revisao</span>
-                    </>
-                  ) : null}
-                </td>
-                <td className="p-3">
-                  <form action={updateAffiliateUrl} className="flex min-w-72 gap-2">
-                    <input type="hidden" name="return_to" value={returnTo} />
-                    <input type="hidden" name="id" value={product.id} />
-                    <input name="affiliate_url" defaultValue={product.affiliate_url || ""} placeholder="URL afiliada oficial" className={`w-full rounded-lg border px-3 py-2 text-xs ${product.affiliate_url ? "border-slate-200" : "border-amber-300 bg-amber-50"}`} />
-                    <button className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-black uppercase text-white">Salvar</button>
-                  </form>
+
+                  <h4 className="mt-2 line-clamp-2 text-base font-black leading-snug text-slate-950">{product.title}</h4>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold text-slate-500">
+                    <span>{product.category}</span>
+                    <span className="font-black text-slate-950">{formatCurrency(product.price)}</span>
+                    <span>ID: {product.external_id}</span>
+                    <span>Rev. {reviewLabel}</span>
+                  </div>
+
                   {!product.affiliate_url ? (
-                    <p className="mt-2 max-w-xs text-[11px] font-semibold text-amber-700">
+                    <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
                       Sem afiliado: o botao de compra usa o link original e pode nao gerar comissao.
                     </p>
                   ) : null}
-                </td>
-                <td className="p-3">
-                  <div className="flex flex-col gap-2">
-                    <CopyProductLinkButton productId={product.id} />
-                    <form action={toggleProductActive}>
-                      <input type="hidden" name="return_to" value={returnTo} />
-                      <input type="hidden" name="id" value={product.id} />
-                      <input type="hidden" name="is_active" value={String(product.is_active)} />
-                      <button className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-black uppercase text-slate-700">
-                        {product.is_active ? "Desativar" : "Ativar"}
-                      </button>
-                    </form>
-                    <form action={checkProductLinks}>
-                      <input type="hidden" name="return_to" value={returnTo} />
-                      <input type="hidden" name="id" value={product.id} />
-                      <button className="w-full rounded-lg border border-green-200 px-3 py-2 text-xs font-black uppercase text-green-700">
-                        Verificar links
-                      </button>
-                    </form>
-                    <form action={markProductReviewed}>
-                      <input type="hidden" name="return_to" value={returnTo} />
-                      <input type="hidden" name="id" value={product.id} />
-                      <button className="w-full rounded-lg border border-blue-200 px-3 py-2 text-xs font-black uppercase text-blue-700">
-                        Marcar revisado
-                      </button>
-                    </form>
-                    <form action={toggleProductFeatured}>
-                      <input type="hidden" name="return_to" value={returnTo} />
-                      <input type="hidden" name="id" value={product.id} />
-                      <input type="hidden" name="is_featured" value={String(product.is_featured)} />
-                      <button className="w-full rounded-lg border border-amber-200 px-3 py-2 text-xs font-black uppercase text-amber-700">
-                        {product.is_featured ? "Remover destaque" : "Destacar"}
-                      </button>
-                    </form>
-                    <DeleteProductButton
-                      productId={product.id}
-                      productTitle={product.title}
-                      clickCount={clickCountsByProduct[product.id] || 0}
-                      returnTo={returnTo}
-                    />
-                  </div>
-                </td>
-              </tr>
-              <tr key={`${product.id}-edit`}>
-                <td colSpan={6} className="bg-slate-50 p-3">
-                  <details>
-                    <summary className="cursor-pointer text-xs font-black uppercase tracking-widest text-slate-500">
-                      Editar detalhes do produto
-                    </summary>
-                    <form action={updateManualProduct} className="mt-3 grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-12">
-                      <input type="hidden" name="return_to" value={returnTo} />
-                      <ProductFields product={product} />
-                      <div className="md:col-span-12">
-                        <button className="rounded-xl bg-slate-950 px-5 py-3 text-xs font-black uppercase text-white">
-                          Salvar produto
-                        </button>
-                      </div>
-                    </form>
-                  </details>
-                </td>
-              </tr>
-            </Fragment>
-          ))}
-        </tbody>
-      </table>
+                </div>
+              </div>
+
+              <div className="space-y-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <form action={updateAffiliateUrl} className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <input type="hidden" name="return_to" value={returnTo} />
+                  <input type="hidden" name="id" value={product.id} />
+                  <input
+                    name="affiliate_url"
+                    defaultValue={product.affiliate_url || ""}
+                    placeholder="URL afiliada oficial"
+                    className={`min-w-0 rounded-lg border px-3 py-2 text-xs ${product.affiliate_url ? "border-slate-200 bg-white" : "border-amber-300 bg-amber-50"}`}
+                  />
+                  <button className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-black uppercase text-white">Salvar</button>
+                </form>
+
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-2">
+                  <CopyProductLinkButton
+                    productId={product.id}
+                    className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-center text-xs font-black uppercase text-blue-700 hover:bg-blue-50"
+                  />
+                  <form action={toggleProductActive}>
+                    <input type="hidden" name="return_to" value={returnTo} />
+                    <input type="hidden" name="id" value={product.id} />
+                    <input type="hidden" name="is_active" value={String(product.is_active)} />
+                    <button className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black uppercase text-slate-700 hover:bg-slate-100">
+                      {product.is_active ? "Desativar" : "Ativar"}
+                    </button>
+                  </form>
+                  <form action={checkProductLinks}>
+                    <input type="hidden" name="return_to" value={returnTo} />
+                    <input type="hidden" name="id" value={product.id} />
+                    <button className="w-full rounded-lg border border-green-200 bg-white px-3 py-2 text-xs font-black uppercase text-green-700 hover:bg-green-50">
+                      Verificar links
+                    </button>
+                  </form>
+                  <form action={markProductReviewed}>
+                    <input type="hidden" name="return_to" value={returnTo} />
+                    <input type="hidden" name="id" value={product.id} />
+                    <button className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-black uppercase text-blue-700 hover:bg-blue-50">
+                      Revisado
+                    </button>
+                  </form>
+                  <form action={toggleProductFeatured}>
+                    <input type="hidden" name="return_to" value={returnTo} />
+                    <input type="hidden" name="id" value={product.id} />
+                    <input type="hidden" name="is_featured" value={String(product.is_featured)} />
+                    <button className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-xs font-black uppercase text-amber-700 hover:bg-amber-50">
+                      {product.is_featured ? "Remover destaque" : "Destacar"}
+                    </button>
+                  </form>
+                  <DeleteProductButton
+                    productId={product.id}
+                    productTitle={product.title}
+                    clickCount={clickCount}
+                    returnTo={returnTo}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <details className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+              <summary className="cursor-pointer text-xs font-black uppercase tracking-widest text-slate-500">
+                Editar detalhes do produto
+              </summary>
+              <form action={updateManualProduct} className="mt-3 grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-12">
+                <input type="hidden" name="return_to" value={returnTo} />
+                <ProductFields product={product} />
+                <div className="md:col-span-12">
+                  <button className="rounded-xl bg-slate-950 px-5 py-3 text-xs font-black uppercase text-white">
+                    Salvar produto
+                  </button>
+                </div>
+              </form>
+            </details>
+          </article>
+        );
+      })}
     </div>
   );
 }
-
 export default async function AdminPage({
   searchParams,
 }: {
