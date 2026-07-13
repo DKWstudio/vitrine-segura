@@ -126,13 +126,13 @@ export default function PublicProductCollection({
 
       <nav className="relative z-10 mt-8 border-b border-slate-200 bg-white/95 py-5 shadow-sm backdrop-blur-md">
         <div className="container mx-auto space-y-4 px-4">
-          <div className="flex flex-nowrap gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm md:flex-wrap md:overflow-visible">
             {sourceLinks.map((link) => (
               <Link
                 key={`${link.href}-${link.label}`}
                 href={link.href}
                 scroll={false}
-                className={`flex-shrink-0 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-wider transition ${
+                className={`flex-shrink-0 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-wider transition md:flex-shrink ${
                   link.active
                     ? "border-blue-600 bg-blue-600 text-white shadow-sm"
                     : `border-transparent ${link.className}`
@@ -143,13 +143,13 @@ export default function PublicProductCollection({
             ))}
           </div>
 
-          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:gap-2.5">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:gap-2.5 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0">
             {categories.map((category) => (
               <Link
                 key={category}
                 href={getCategoryHref(category, selectedSource)}
                 scroll={false}
-                className="flex-shrink-0 whitespace-nowrap rounded-xl border-2 border-[#0F172A] bg-[#0F172A] px-3.5 py-2.5 text-[9px] font-black uppercase tracking-wide text-white transition-all hover:border-[#FFE600] hover:bg-[#FFE600] hover:text-[#0F172A] sm:px-4 sm:text-[10px] lg:px-5"
+                className="flex-shrink-0 whitespace-nowrap rounded-xl border-2 border-[#0F172A] bg-[#0F172A] px-3.5 py-2.5 text-[9px] font-black uppercase tracking-wide text-white transition-all hover:border-[#FFE600] hover:bg-[#FFE600] hover:text-[#0F172A] sm:px-4 sm:text-[10px] md:flex-shrink lg:px-5"
               >
                 {category}
               </Link>
