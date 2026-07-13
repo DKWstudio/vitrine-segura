@@ -6,12 +6,15 @@ import CopyProductLinkButton from "@/components/admin/CopyProductLinkButton";
 import DeleteProductButton from "@/components/admin/DeleteProductButton";
 import ShopeeAffiliateWarning from "@/components/admin/ShopeeAffiliateWarning";
 import { isAdminAuthenticated } from "@/lib/admin/auth";
+import { campaignColumns, normalizeSupabaseCampaign } from "@/lib/campaigns";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 import { normalizeSupabaseProduct, productColumns } from "@/lib/products";
-import type { AffiliateProduct, ClickSummary, ProductSource, SearchRule } from "@/types/product";
+import type { AffiliateProduct, Campaign, ClickSummary, ProductSource, SearchRule } from "@/types/product";
 import {
   checkProductLinks,
+  createCampaign,
   createManualProduct,
+  deleteCampaign,
   deleteSearchRule,
   deleteSelectedPendingProducts,
   importMercadoLivreProduct,
@@ -25,6 +28,7 @@ import {
   toggleProductActive,
   toggleProductFeatured,
   updateAffiliateUrl,
+  updateCampaign,
   updateManualProduct,
   updatePendingProductCategories,
   updateSearchRule,
@@ -67,7 +71,7 @@ function normalizeRule(rule: Record<string, unknown>): SearchRule {
 async function getAdminData() {
   const supabase = createServiceSupabaseClient();
 
-  const [productsResult, rulesResult, clicksResult] = await Promise.all([
+  const [productsResult, rulesResult, clicksResult, campaignsResult, campaignClicksResult] = await Promise.all([
     supabase
       .from("products")
       .select(productColumns)
@@ -79,6 +83,8 @@ async function getAdminData() {
       .select("product_id, source, created_at, products(title)")
       .order("created_at", { ascending: false })
       .limit(2000),
+    supabase.from("campaigns").select(campaignColumns).order("created_at", { ascending: false }).limit(100),
+    supabase.from("campaign_clicks").select("campaign_id, source, created_at").order("created_at", { ascending: false }).limit(2000),
   ]);
 
   if (productsResult.error) {
@@ -91,6 +97,19 @@ async function getAdminData() {
 
   if (clicksResult.error) {
     throw new Error(clicksResult.error.message);
+  }
+
+  const campaigns = campaignsResult.error ? [] : (campaignsResult.data || []).map((campaign) => normalizeSupabaseCampaign(campaign));
+  const campaignClickCounts = new Map<string, number>();
+
+  if (!campaignClicksResult.error) {
+    for (const click of campaignClicksResult.data || []) {
+      const campaignId = String(click.campaign_id || "");
+
+      if (campaignId) {
+        campaignClickCounts.set(campaignId, (campaignClickCounts.get(campaignId) || 0) + 1);
+      }
+    }
   }
 
   const products = (productsResult.data || []).map((product) => normalizeSupabaseProduct(product));
@@ -140,6 +159,8 @@ async function getAdminData() {
       Array.from(clickMap.entries()).map(([productId, summary]) => [productId, summary.clicks]),
     ) as Record<string, number>,
     rules: (rulesResult.data || []).map((rule) => normalizeRule(rule)),
+    campaigns,
+    campaignClickCountsByCampaign: Object.fromEntries(campaignClickCounts.entries()) as Record<string, number>,
     stats: {
       totalProducts: products.length,
       activeProducts: products.filter((product) => product.is_active).length,
@@ -603,6 +624,78 @@ function PlatformProductForms() {
         />
       </section>
     </div>
+  );
+}
+function CampaignForm({ campaign }: { campaign?: Campaign }) {
+  return (
+    <form action={campaign ? updateCampaign : createCampaign} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-12">
+      {campaign ? <input type="hidden" name="id" value={campaign.id} /> : null}
+      <select name="source" defaultValue={campaign?.source || "shein"} className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-2">
+        <option value="shein">Shein</option>
+        <option value="shopee">Shopee</option>
+        <option value="mercadolivre">Mercado Livre</option>
+      </select>
+      <input name="title" required defaultValue={campaign?.title || ""} placeholder="Titulo da campanha" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-4" />
+      <input name="coupon_code" defaultValue={campaign?.coupon_code || ""} placeholder="Cupom/codigo opcional" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-2" />
+      <input name="campaign_url" required defaultValue={campaign?.campaign_url || ""} placeholder="Link oficial da campanha" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-4" />
+      <textarea name="description" defaultValue={campaign?.description || ""} placeholder="Descricao curta" className="min-h-20 rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-8" />
+      <input name="image_url" defaultValue={campaign?.image_url || ""} placeholder="Imagem opcional" className="rounded-lg border border-slate-200 px-3 py-2 text-sm md:col-span-4" />
+      <div className="flex flex-wrap items-center gap-3 md:col-span-12">
+        <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700">
+          <input name="is_active" type="checkbox" defaultChecked={campaign?.is_active ?? true} />
+          Ativa
+        </label>
+        <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700">
+          <input name="is_featured" type="checkbox" defaultChecked={campaign?.is_featured ?? false} />
+          Destaque
+        </label>
+        <button className="rounded-xl bg-slate-950 px-5 py-3 text-xs font-black uppercase text-white">
+          {campaign ? "Salvar campanha" : "Cadastrar campanha"}
+        </button>
+        {campaign ? (
+          <button formAction={deleteCampaign} className="rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-xs font-black uppercase text-red-700">
+            Excluir
+          </button>
+        ) : null}
+      </div>
+    </form>
+  );
+}
+
+function CampaignsPanel({ campaigns, clickCounts }: { campaigns: Campaign[]; clickCounts: Record<string, number> }) {
+  return (
+    <section id="campanhas" className="scroll-mt-6 space-y-4">
+      <div>
+        <h2 className="text-xl font-black uppercase">Campanhas</h2>
+        <p className="text-sm text-slate-500">Cadastre cards manuais para colecoes e campanhas oficiais da Shein e Shopee.</p>
+      </div>
+      <CampaignForm />
+      <div className="grid gap-3 lg:grid-cols-2">
+        {campaigns.map((campaign) => (
+          <div key={campaign.id} className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{campaign.source}</p>
+                <h3 className="font-black text-slate-950">{campaign.title}</h3>
+              </div>
+              <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase">
+                <span className={campaign.is_active ? "rounded-full bg-green-50 px-2 py-1 text-green-700" : "rounded-full bg-red-50 px-2 py-1 text-red-700"}>
+                  {campaign.is_active ? "Ativa" : "Inativa"}
+                </span>
+                {campaign.is_featured ? <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">Destaque</span> : null}
+                <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-700">{clickCounts[campaign.id] || 0} cliques</span>
+              </div>
+            </div>
+            <CampaignForm campaign={campaign} />
+          </div>
+        ))}
+        {campaigns.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500 lg:col-span-2">
+            Nenhuma campanha cadastrada ainda.
+          </p>
+        ) : null}
+      </div>
+    </section>
   );
 }
 function AdminStats({ stats }: { stats: Awaited<ReturnType<typeof getAdminData>>["stats"] }) {

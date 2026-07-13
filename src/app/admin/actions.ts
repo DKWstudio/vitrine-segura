@@ -498,6 +498,18 @@ function parseBulkProductLine(line: string, lineNumber: number) {
     last_checked_at: now,
   };
 }
+function getCampaignPayload(formData: FormData) {
+  return {
+    source: normalizeSource(requiredString(formData, "source")),
+    title: requiredString(formData, "title"),
+    description: optionalString(formData, "description"),
+    coupon_code: optionalString(formData, "coupon_code"),
+    campaign_url: requiredString(formData, "campaign_url"),
+    image_url: optionalString(formData, "image_url"),
+    is_active: formData.get("is_active") === "on",
+    is_featured: formData.get("is_featured") === "on",
+  };
+}
 function getProductPayload(formData: FormData, fallbackExternalId?: string) {
   const source = normalizeSource(requiredString(formData, "source"));
   const price = requiredNumber(formData, "price");
@@ -1087,3 +1099,50 @@ export async function updateSearchRule(formData: FormData) {
   revalidatePath("/admin");
 }
 
+
+export async function createCampaign(formData: FormData) {
+  await requireAdmin();
+
+  const supabase = createServiceSupabaseClient();
+  const { error } = await supabase.from("campaigns").insert(getCampaignPayload(formData));
+
+  if (error) {
+    redirectWithAdminMessage("notice_error", `Nao consegui cadastrar campanha: ${error.message}`);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  redirectWithAdminMessage("notice_success", "Campanha cadastrada com sucesso.", "/admin#campanhas");
+}
+
+export async function updateCampaign(formData: FormData) {
+  await requireAdmin();
+
+  const id = requiredString(formData, "id");
+  const supabase = createServiceSupabaseClient();
+  const { error } = await supabase.from("campaigns").update(getCampaignPayload(formData)).eq("id", id);
+
+  if (error) {
+    redirectWithAdminMessage("notice_error", `Nao consegui atualizar campanha: ${error.message}`, "/admin#campanhas");
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  redirectWithAdminMessage("notice_success", "Campanha atualizada.", "/admin#campanhas");
+}
+
+export async function deleteCampaign(formData: FormData) {
+  await requireAdmin();
+
+  const id = requiredString(formData, "id");
+  const supabase = createServiceSupabaseClient();
+  const { error } = await supabase.from("campaigns").delete().eq("id", id);
+
+  if (error) {
+    redirectWithAdminMessage("notice_error", `Nao consegui excluir campanha: ${error.message}`, "/admin#campanhas");
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  redirectWithAdminMessage("notice_success", "Campanha excluida.", "/admin#campanhas");
+}

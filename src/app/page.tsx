@@ -1,13 +1,15 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { CheckCircle, Shield, Star, Truck } from "lucide-react";
+import CampaignCards from "@/components/ui/CampaignCards";
 import ProductCatalog from "@/components/ui/ProductCatalog";
+import { getActiveCampaigns } from "@/lib/campaigns";
 import { getActiveProducts, getMostClickedProducts } from "@/lib/products";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Achadinhos uteis",
-  description: "Produtos selecionados do Mercado Livre e Shopee por categorias, preco e destaque.",
+  description: "Produtos selecionados do Mercado Livre, Shopee e Shein por categorias, preco e destaque.",
 };
 
 function TrustCards() {
@@ -38,7 +40,11 @@ function TrustCards() {
 }
 
 export default async function VitrineSegura() {
-  const [products, mostClickedProducts] = await Promise.all([getActiveProducts(), getMostClickedProducts(8, 7)]);
+  const [products, mostClickedProducts, campaigns] = await Promise.all([
+    getActiveProducts(),
+    getMostClickedProducts(8, 7),
+    getActiveCampaigns(),
+  ]);
 
   return (
     <div id="top" className="min-h-screen bg-[#F8FAFC] font-sans antialiased text-slate-900">
@@ -55,18 +61,16 @@ export default async function VitrineSegura() {
             Achadinhos <span className="text-[#FFE600]">Uteis</span>
           </h1>
           <p className="text-sm md:text-xl text-slate-400 mt-2 font-medium italic">
-            Os melhores produtos do Mercado Livre e Shopee hoje
+            Os melhores produtos do Mercado Livre, Shopee e Shein hoje
           </p>
         </div>
       </header>
 
       <TrustCards />
 
+      <CampaignCards campaigns={campaigns} />
+
       <ProductCatalog products={products} mostClickedProducts={mostClickedProducts} />
     </div>
   );
 }
-
-
-
-

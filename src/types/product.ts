@@ -58,3 +58,16 @@ export interface ClickSummary {
   clicks_last_7_days: number;
   is_featured: boolean;
 }
+
+export interface Campaign {
+  id: string;
+  source: ProductSource;
+  title: string;
+  description: string | null;
+  coupon_code: string | null;
+  campaign_url: string;
+  image_url: string | null;
+  is_active: boolean;
+  is_featured: boolean;
+  created_at: string;
+}
