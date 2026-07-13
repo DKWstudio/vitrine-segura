@@ -6,7 +6,7 @@ export interface Product {
   price: number;
   image: string;
   url: string;
-  category: 'Casa' | 'Eletr\u00f4nicos' | 'Beleza' | 'Audio' | 'Roupas-Masc' | 'Roupas-Fem' | 'Infantil' | 'Bebe' | 'Auto' | 'Suplementos';
+  category: 'Casa e Decora\u00e7\u00e3o' | 'Casa' | 'Eletr\u00f4nicos' | 'Beleza' | 'Audio' | 'Roupas-Masc' | 'Roupas-Fem' | 'Infantil' | 'Bebe' | 'Auto' | 'Suplementos';
   rating: number;
   benefits?: string[]; // Para as Dicas do Dia
   isDailyTip?: boolean;

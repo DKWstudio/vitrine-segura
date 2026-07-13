@@ -5,7 +5,10 @@ interface CategoryFilterProps {
 }
 
 const categoryLabels: Record<string, string> = {
-  Casa: "Casa",
+  Casa: "Casa e Decora\u00e7\u00e3o",
+  "Casa e Constru\u00e7\u00e3o": "Casa e Decora\u00e7\u00e3o",
+  "Casa e Construcao": "Casa e Decora\u00e7\u00e3o",
+  "Casa e Decora\u00e7\u00e3o": "Casa e Decora\u00e7\u00e3o",
   Eletronicos: "Eletronicos",
   "Eletr\u00f4nicos": "Eletronicos",
   Beleza: "Beleza",

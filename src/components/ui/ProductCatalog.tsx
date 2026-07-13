@@ -34,7 +34,7 @@ function MostClickedStrip({ products }: { products: AffiliateProduct[] }) {
       <div className="mb-2 flex items-center justify-between gap-3">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">Mais clicados</p>
-          <p className="text-xs font-semibold text-slate-500">Destaques dos últimos 7 dias</p>
+          <p className="text-xs font-semibold text-slate-500">Destaques dos ultimos 7 dias</p>
         </div>
         <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black uppercase text-slate-500 shadow-sm">
           Top {Math.min(products.length, 6)}
@@ -75,7 +75,7 @@ function MostClickedStrip({ products }: { products: AffiliateProduct[] }) {
 export default function ProductCatalog({ products, mostClickedProducts = [] }: ProductCatalogProps) {
   const categories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(products.map((product) => product.category)));
-    return uniqueCategories.length > 0 ? uniqueCategories : ["Casa"];
+    return uniqueCategories.length > 0 ? uniqueCategories : ["Casa e Decora\u00e7\u00e3o"];
   }, [products]);
 
   const [selectedCategory, setSelectedCategory] = useState(categories[0]);
