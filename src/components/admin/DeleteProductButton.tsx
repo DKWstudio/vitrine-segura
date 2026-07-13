@@ -7,12 +7,14 @@ interface DeleteProductButtonProps {
   productId: string;
   productTitle: string;
   clickCount: number;
+  returnTo: string;
 }
 
 export default function DeleteProductButton({
   productId,
   productTitle,
   clickCount,
+  returnTo,
 }: DeleteProductButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -38,6 +40,7 @@ export default function DeleteProductButton({
   return (
     <>
       <form ref={formRef} action={deleteProduct} className="hidden">
+        <input type="hidden" name="return_to" value={returnTo} />
         <input type="hidden" name="id" value={productId} />
         <input type="hidden" name="confirm_delete" value="on" />
       </form>

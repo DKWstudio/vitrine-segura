@@ -164,6 +164,21 @@ function getTextParam(params: Record<string, string | string[] | undefined>, key
   return (getSingleParam(params, key) || "").trim();
 }
 
+function getProductReturnTo(params: Record<string, string | string[] | undefined>) {
+  const queryParams = new URLSearchParams();
+
+  for (const key of ["product_filter", "product_category", "product_query"]) {
+    const value = getSingleParam(params, key);
+
+    if (value) {
+      queryParams.set(key, value);
+    }
+  }
+
+  const queryString = queryParams.toString();
+  return queryString ? `/admin?${queryString}#produtos-encontrados` : "/admin#produtos-encontrados";
+}
+
 function getCategoryOptions(products: AffiliateProduct[]) {
   return Array.from(new Set(products.map((product) => product.category.trim()).filter(Boolean))).sort((a, b) =>
     a.localeCompare(b, "pt-BR"),
@@ -932,7 +947,7 @@ function CatalogMaintenancePanel({
     </section>
   );
 }
-function PublishQueue({ products }: { products: AffiliateProduct[] }) {
+function PublishQueue({ products, returnTo }: { products: AffiliateProduct[]; returnTo: string }) {
   if (products.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-green-200 bg-green-50/60 p-5 text-sm text-green-800">
@@ -956,6 +971,7 @@ function PublishQueue({ products }: { products: AffiliateProduct[] }) {
       </div>
 
       <form action={publishSelectedProducts} className="mt-4 space-y-4">
+        <input type="hidden" name="return_to" value={returnTo} />
         <div className="grid gap-3 lg:grid-cols-2">
           {products.map((product) => (
             <div
@@ -1016,10 +1032,12 @@ function ProductsTable({
   products,
   clickCountsByProduct,
   emptyMessage = "Nenhum produto salvo no Supabase ainda.",
+  returnTo,
 }: {
   products: AffiliateProduct[];
   clickCountsByProduct: Record<string, number>;
   emptyMessage?: string;
+  returnTo: string;
 }) {
   if (products.length === 0) {
     return <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-500">{emptyMessage}</p>;
@@ -1074,6 +1092,7 @@ function ProductsTable({
                 </td>
                 <td className="p-3">
                   <form action={updateAffiliateUrl} className="flex min-w-72 gap-2">
+                    <input type="hidden" name="return_to" value={returnTo} />
                     <input type="hidden" name="id" value={product.id} />
                     <input name="affiliate_url" defaultValue={product.affiliate_url || ""} placeholder="URL afiliada oficial" className={`w-full rounded-lg border px-3 py-2 text-xs ${product.affiliate_url ? "border-slate-200" : "border-amber-300 bg-amber-50"}`} />
                     <button className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-black uppercase text-white">Salvar</button>
@@ -1088,6 +1107,7 @@ function ProductsTable({
                   <div className="flex flex-col gap-2">
                     <CopyProductLinkButton productId={product.id} />
                     <form action={toggleProductActive}>
+                      <input type="hidden" name="return_to" value={returnTo} />
                       <input type="hidden" name="id" value={product.id} />
                       <input type="hidden" name="is_active" value={String(product.is_active)} />
                       <button className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs font-black uppercase text-slate-700">
@@ -1095,18 +1115,21 @@ function ProductsTable({
                       </button>
                     </form>
                     <form action={checkProductLinks}>
+                      <input type="hidden" name="return_to" value={returnTo} />
                       <input type="hidden" name="id" value={product.id} />
                       <button className="w-full rounded-lg border border-green-200 px-3 py-2 text-xs font-black uppercase text-green-700">
                         Verificar links
                       </button>
                     </form>
                     <form action={markProductReviewed}>
+                      <input type="hidden" name="return_to" value={returnTo} />
                       <input type="hidden" name="id" value={product.id} />
                       <button className="w-full rounded-lg border border-blue-200 px-3 py-2 text-xs font-black uppercase text-blue-700">
                         Marcar revisado
                       </button>
                     </form>
                     <form action={toggleProductFeatured}>
+                      <input type="hidden" name="return_to" value={returnTo} />
                       <input type="hidden" name="id" value={product.id} />
                       <input type="hidden" name="is_featured" value={String(product.is_featured)} />
                       <button className="w-full rounded-lg border border-amber-200 px-3 py-2 text-xs font-black uppercase text-amber-700">
@@ -1117,6 +1140,7 @@ function ProductsTable({
                       productId={product.id}
                       productTitle={product.title}
                       clickCount={clickCountsByProduct[product.id] || 0}
+                      returnTo={returnTo}
                     />
                   </div>
                 </td>
@@ -1128,6 +1152,7 @@ function ProductsTable({
                       Editar detalhes do produto
                     </summary>
                     <form action={updateManualProduct} className="mt-3 grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-12">
+                      <input type="hidden" name="return_to" value={returnTo} />
                       <ProductFields product={product} />
                       <div className="md:col-span-12">
                         <button className="rounded-xl bg-slate-950 px-5 py-3 text-xs font-black uppercase text-white">
@@ -1157,6 +1182,7 @@ export default async function AdminPage({
   const selectedProductFilter = getProductAdminFilter(params.product_filter);
   const selectedProductCategory = getTextParam(params, "product_category");
   const productSearchQuery = getTextParam(params, "product_query");
+  const productReturnTo = getProductReturnTo(params);
 
   if (!(await isAdminAuthenticated())) {
     return <LoginForm hasError={params.error === "invalid-password"} />;
@@ -1278,7 +1304,7 @@ export default async function AdminPage({
             searchQuery={productSearchQuery}
             filteredCount={filteredProducts.length}
           />
-          <PublishQueue products={pendingProducts} />
+          <PublishQueue products={pendingProducts} returnTo={productReturnTo} />
           <div>
             <h3 className="text-lg font-black uppercase">Produtos publicados</h3>
             <p className="text-sm text-slate-500">
@@ -1289,6 +1315,7 @@ export default async function AdminPage({
             products={publishedProducts}
             clickCountsByProduct={data.clickCountsByProduct}
             emptyMessage="Nenhum produto publicado nesse filtro."
+            returnTo={productReturnTo}
           />
         </section>
 
@@ -1333,6 +1360,7 @@ export default async function AdminPage({
                         />
                         {item.is_featured ? null : (
                           <form action={toggleProductFeatured}>
+                            <input type="hidden" name="return_to" value={productReturnTo} />
                             <input type="hidden" name="id" value={item.product_id} />
                             <input type="hidden" name="is_featured" value="false" />
                             <button className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black uppercase text-amber-700 hover:bg-amber-100">

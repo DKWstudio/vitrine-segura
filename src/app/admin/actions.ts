@@ -55,8 +55,40 @@ function requiredNumber(formData: FormData, key: string) {
   return value;
 }
 
-function redirectWithAdminMessage(key: "import_error" | "import_success" | "notice_error" | "notice_success", message: string): never {
-  redirect(`/admin?${key}=${encodeURIComponent(message)}`);
+function getSafeAdminReturnTo(formData: FormData, fallback = "/admin#produtos-encontrados") {
+  const value = formData.get("return_to");
+
+  if (typeof value !== "string" || value.trim() === "") {
+    return fallback;
+  }
+
+  const returnTo = value.trim();
+
+  if (!returnTo.startsWith("/admin")) {
+    return fallback;
+  }
+
+  return returnTo;
+}
+
+function redirectWithAdminMessage(
+  key: "import_error" | "import_success" | "notice_error" | "notice_success",
+  message: string,
+  returnTo = "/admin",
+): never {
+  const [pathAndQuery, hash] = returnTo.split("#");
+  const separator = pathAndQuery.includes("?") ? "&" : "?";
+  const target = `${pathAndQuery}${separator}${key}=${encodeURIComponent(message)}${hash ? `#${hash}` : ""}`;
+
+  redirect(target);
+}
+
+function redirectWithFormMessage(
+  formData: FormData,
+  key: "import_error" | "import_success" | "notice_error" | "notice_success",
+  message: string,
+): never {
+  redirectWithAdminMessage(key, message, getSafeAdminReturnTo(formData));
 }
 
 function getMercadoLivreImportErrorMessage(error: unknown, itemId: string) {
@@ -717,7 +749,7 @@ export async function updateManualProduct(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/");
-  redirectWithAdminMessage("notice_success", "Produto atualizado.");
+  redirectWithFormMessage(formData, "notice_success", "Produto atualizado.");
 }
 
 export async function deleteProduct(formData: FormData) {
@@ -739,7 +771,7 @@ export async function deleteProduct(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/");
-  redirectWithAdminMessage("notice_success", "Produto excluido.");
+  redirectWithFormMessage(formData, "notice_success", "Produto excluido.");
 }
 
 async function updateProductCategoriesFromForm(formData: FormData, ids: string[]) {
@@ -765,14 +797,14 @@ export async function updatePendingProductCategories(formData: FormData) {
     .filter((value): value is string => typeof value === "string" && value.trim().length > 0);
 
   if (ids.length === 0) {
-    redirectWithAdminMessage("notice_error", "Nenhum produto pendente para atualizar.");
+    redirectWithFormMessage(formData, "notice_error", "Nenhum produto pendente para atualizar.");
   }
 
   await updateProductCategoriesFromForm(formData, ids);
 
   revalidatePath("/admin");
   revalidatePath("/");
-  redirectWithAdminMessage("notice_success", "Categorias atualizadas.");
+  redirectWithFormMessage(formData, "notice_success", "Categorias atualizadas.");
 }
 export async function deleteSelectedPendingProducts(formData: FormData) {
   await requireAdmin();
@@ -782,7 +814,7 @@ export async function deleteSelectedPendingProducts(formData: FormData) {
     .filter((value): value is string => typeof value === "string" && value.trim().length > 0);
 
   if (ids.length === 0) {
-    redirectWithAdminMessage("notice_error", "Selecione ao menos um produto pendente para excluir.");
+    redirectWithFormMessage(formData, "notice_error", "Selecione ao menos um produto pendente para excluir.");
   }
 
   const supabase = createServiceSupabaseClient();
@@ -799,7 +831,7 @@ export async function deleteSelectedPendingProducts(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/");
-  redirectWithAdminMessage("notice_success", `${data?.length || 0} produto(s) pendente(s) excluido(s).`);
+  redirectWithFormMessage(formData, "notice_success", `${data?.length || 0} produto(s) pendente(s) excluido(s).`);
 }
 export async function publishSelectedProducts(formData: FormData) {
   await requireAdmin();
@@ -809,7 +841,7 @@ export async function publishSelectedProducts(formData: FormData) {
     .filter((value): value is string => typeof value === "string" && value.trim().length > 0);
 
   if (ids.length === 0) {
-    redirectWithAdminMessage("notice_error", "Selecione ao menos um produto para publicar.");
+    redirectWithFormMessage(formData, "notice_error", "Selecione ao menos um produto para publicar.");
   }
 
   const supabase = createServiceSupabaseClient();
@@ -822,7 +854,7 @@ export async function publishSelectedProducts(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/");
-  redirectWithAdminMessage("notice_success", `${ids.length} produto(s) publicado(s).`);
+  redirectWithFormMessage(formData, "notice_success", `${ids.length} produto(s) publicado(s).`);
 }
 export async function toggleProductActive(formData: FormData) {
   await requireAdmin();
@@ -839,6 +871,7 @@ export async function toggleProductActive(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/");
+  redirectWithFormMessage(formData, "notice_success", isActive ? "Produto desativado." : "Produto ativado.");
 }
 
 export async function toggleProductFeatured(formData: FormData) {
@@ -859,6 +892,7 @@ export async function toggleProductFeatured(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/");
+  redirectWithFormMessage(formData, "notice_success", isFeatured ? "Destaque removido." : "Produto destacado.");
 }
 
 export async function updateAffiliateUrl(formData: FormData) {
@@ -879,6 +913,7 @@ export async function updateAffiliateUrl(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/");
+  redirectWithFormMessage(formData, "notice_success", "Link afiliado atualizado.");
 }
 
 
@@ -894,7 +929,7 @@ export async function checkProductLinks(formData: FormData) {
     .maybeSingle();
 
   if (loadError || !product) {
-    redirectWithAdminMessage("notice_error", loadError?.message || "Produto nao encontrado para verificar links.");
+    redirectWithFormMessage(formData, "notice_error", loadError?.message || "Produto nao encontrado para verificar links.");
   }
 
   const productUrl = typeof product.product_url === "string" ? product.product_url : null;
@@ -911,7 +946,7 @@ export async function checkProductLinks(formData: FormData) {
     .eq("id", id);
 
   if (updateError) {
-    redirectWithAdminMessage("notice_error", `Nao consegui marcar a revisao do produto: ${updateError.message}`);
+    redirectWithFormMessage(formData, "notice_error", `Nao consegui marcar a revisao do produto: ${updateError.message}`);
   }
 
   revalidatePath("/admin");
@@ -923,10 +958,10 @@ export async function checkProductLinks(formData: FormData) {
       affiliateCheck.ok ? null : `afiliado ${affiliateCheck.status ? `HTTP ${affiliateCheck.status}` : "sem resposta"}`,
     ].filter(Boolean);
 
-    redirectWithAdminMessage("notice_error", `Link com falha (${failures.join(", ")}). Produto marcado para revisao.`);
+    redirectWithFormMessage(formData, "notice_error", `Link com falha (${failures.join(", ")}). Produto marcado para revisao.`);
   }
 
-  redirectWithAdminMessage("notice_success", "Links verificados com sucesso. Produto revisado.");
+  redirectWithFormMessage(formData, "notice_success", "Links verificados com sucesso. Produto revisado.");
 }
 export async function markProductReviewed(formData: FormData) {
   await requireAdmin();
@@ -945,7 +980,7 @@ export async function markProductReviewed(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/");
-  redirectWithAdminMessage("notice_success", "Produto marcado como revisado.");
+  redirectWithFormMessage(formData, "notice_success", "Produto marcado como revisado.");
 }
 export async function searchProductsFromRule(formData: FormData) {
   await requireAdmin();
