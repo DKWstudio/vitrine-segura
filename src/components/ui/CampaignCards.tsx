@@ -5,9 +5,12 @@ function getSourceStyle(source: ProductSource) {
   if (source === "shopee") {
     return {
       label: "Shopee",
-      card: "border-orange-200 bg-orange-50",
-      badge: "bg-orange-600 text-white",
-      button: "bg-orange-600 text-white hover:bg-orange-700",
+      card: "border-orange-200 bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 text-white",
+      media: "bg-orange-100/90",
+      badge: "bg-white text-orange-700",
+      highlight: "bg-yellow-300 text-slate-950",
+      coupon: "bg-white text-orange-700",
+      button: "bg-white text-orange-700 hover:bg-orange-50",
       icon: "text-orange-600",
     };
   }
@@ -15,8 +18,11 @@ function getSourceStyle(source: ProductSource) {
   if (source === "shein") {
     return {
       label: "Shein",
-      card: "border-slate-800 bg-slate-950 text-white",
+      card: "border-slate-800 bg-gradient-to-br from-slate-950 via-black to-slate-900 text-white",
+      media: "bg-slate-900",
       badge: "bg-white text-slate-950",
+      highlight: "bg-yellow-300 text-slate-950",
+      coupon: "bg-white text-slate-950",
       button: "bg-white text-slate-950 hover:bg-slate-100",
       icon: "text-white",
     };
@@ -24,73 +30,89 @@ function getSourceStyle(source: ProductSource) {
 
   return {
     label: "Mercado Livre",
-    card: "border-blue-200 bg-blue-50",
-    badge: "bg-blue-600 text-white",
-    button: "bg-blue-600 text-white hover:bg-blue-700",
+    card: "border-blue-200 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white",
+    media: "bg-blue-100/90",
+    badge: "bg-white text-blue-700",
+    highlight: "bg-yellow-300 text-slate-950",
+    coupon: "bg-white text-blue-700",
+    button: "bg-white text-blue-700 hover:bg-blue-50",
     icon: "text-blue-600",
   };
 }
 
 export default function CampaignCards({ campaigns }: { campaigns: Campaign[] }) {
-  if (campaigns.length === 0) {
+  const visibleCampaigns = campaigns.slice(0, 2);
+
+  if (visibleCampaigns.length === 0) {
     return null;
   }
 
   return (
     <section className="container mx-auto mt-8 px-4">
-      <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.24em] text-blue-600">Campanhas</p>
           <h2 className="text-2xl font-black uppercase tracking-tight text-slate-950">Ofertas especiais</h2>
         </div>
         <p className="max-w-xl text-sm font-semibold text-slate-500">
-          Links oficiais de campanhas e colecoes selecionadas para garimpar varios achadinhos de uma vez.
+          Campanhas oficiais selecionadas para garimpar varios achadinhos de uma vez.
         </p>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {campaigns.map((campaign) => {
+      <div className="grid gap-4 lg:grid-cols-2">
+        {visibleCampaigns.map((campaign) => {
           const style = getSourceStyle(campaign.source);
 
           return (
-            <article key={campaign.id} className={`overflow-hidden rounded-2xl border p-4 shadow-sm ${style.card}`}>
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 flex-none items-center justify-center overflow-hidden rounded-xl bg-white/80 shadow-sm">
-                  {campaign.image_url ? (
-                    <img src={campaign.image_url} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <Gift className={`h-6 w-6 ${style.icon}`} />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase ${style.badge}`}>
-                      {style.label}
-                    </span>
-                    {campaign.is_featured ? (
-                      <span className="rounded-full bg-yellow-300 px-2.5 py-1 text-[10px] font-black uppercase text-slate-950">
-                        Destaque
-                      </span>
-                    ) : null}
+            <article key={campaign.id} className={`overflow-hidden rounded-3xl border shadow-lg ${style.card}`}>
+              <div className={`m-3 flex aspect-[16/7] items-center justify-center overflow-hidden rounded-2xl ${style.media}`}>
+                {campaign.image_url ? (
+                  <img src={campaign.image_url} alt={campaign.title} className="h-full w-full object-contain" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-white/10">
+                    <Gift className={`h-12 w-12 ${style.icon}`} />
                   </div>
-                  <h3 className="mt-3 text-lg font-black leading-tight">{campaign.title}</h3>
-                  {campaign.description ? (
-                    <p className="mt-2 line-clamp-2 text-sm font-semibold opacity-80">{campaign.description}</p>
+                )}
+              </div>
+
+              <div className="space-y-4 px-5 pb-5 pt-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`rounded-full px-3 py-1.5 text-[11px] font-black uppercase tracking-wide ${style.badge}`}>
+                    {style.label}
+                  </span>
+                  {campaign.is_featured ? (
+                    <span className={`rounded-full px-3 py-1.5 text-[11px] font-black uppercase tracking-wide ${style.highlight}`}>
+                      Destaque
+                    </span>
                   ) : null}
-                  {campaign.coupon_code ? (
-                    <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-xs font-black uppercase text-slate-950">
-                      <Tag className="h-3.5 w-3.5" /> {campaign.coupon_code}
+                </div>
+
+                <div>
+                  <h3 className="text-2xl font-black leading-tight tracking-tight md:text-3xl">{campaign.title}</h3>
+                  {campaign.description ? (
+                    <p className="mt-2 line-clamp-3 text-sm font-bold leading-relaxed text-white/80 md:text-base">
+                      {campaign.description}
                     </p>
                   ) : null}
                 </div>
-              </div>
 
-              <a
-                href={`/go/campaign/${campaign.id}`}
-                className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-xs font-black uppercase transition ${style.button}`}
-              >
-                Ver campanha <ExternalLink className="h-4 w-4" />
-              </a>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  {campaign.coupon_code ? (
+                    <p className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-2 text-xs font-black uppercase ${style.coupon}`}>
+                      <Tag className="h-3.5 w-3.5" /> {campaign.coupon_code}
+                    </p>
+                  ) : (
+                    <span />
+                  )}
+
+                  <a
+                    href={`/go/campaign/${campaign.id}`}
+                    className={`inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3 text-xs font-black uppercase transition ${style.button}`}
+                  >
+                    Ver campanha <ExternalLink className="h-4 w-4" />
+                  </a>
+                </div>
+              </div>
             </article>
           );
         })}
