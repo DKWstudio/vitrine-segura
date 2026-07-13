@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowRight, ShoppingBag } from "lucide-react";
+import { ArrowRight, Search, ShoppingBag, X } from "lucide-react";
 import CategoryFilter from "@/components/ui/CategoryFilter";
 import ProductGrid from "@/components/ui/ProductGrid";
 import SourceBadge from "@/components/ui/SourceBadge";
@@ -22,6 +22,14 @@ const sourceOptions: Array<{ id: "all" | ProductSource; label: string }> = [
 
 function formatPrice(price: number) {
   return price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function normalizeSearchText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
 }
 
 function MostClickedStrip({ products }: { products: AffiliateProduct[] }) {
@@ -80,13 +88,22 @@ export default function ProductCatalog({ products, mostClickedProducts = [] }: P
 
   const [selectedCategory, setSelectedCategory] = useState(categories[0]);
   const [selectedSource, setSelectedSource] = useState<"all" | ProductSource>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const normalizedQuery = normalizeSearchText(searchQuery);
 
   const filteredProducts = products.filter((product) => {
-    const matchesCategory = product.category === selectedCategory;
     const matchesSource = selectedSource === "all" || product.source === selectedSource;
+    const matchesCategory = normalizedQuery ? true : product.category === selectedCategory;
+    const searchTarget = normalizeSearchText(
+      `${product.title} ${product.category} ${product.source} ${product.seller_name || ""} ${product.description || ""}`,
+    );
+    const matchesSearch = !normalizedQuery || searchTarget.includes(normalizedQuery);
 
-    return matchesCategory && matchesSource;
+    return matchesCategory && matchesSource && matchesSearch;
   });
+
+  const hasSearch = normalizedQuery.length > 0;
 
   return (
     <>
@@ -102,6 +119,33 @@ export default function ProductCatalog({ products, mostClickedProducts = [] }: P
               </span>
               <ArrowRight className="h-3 w-3 text-slate-400" />
             </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+            <label className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100 focus-within:bg-white focus-within:ring-blue-200">
+              <Search className="h-5 w-5 flex-shrink-0 text-blue-600" />
+              <input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Buscar achadinhos: garrafa, creatina, bolsa, fone..."
+                className="min-w-0 flex-1 bg-transparent text-sm font-bold text-slate-900 outline-none placeholder:text-slate-400"
+              />
+              {hasSearch ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="rounded-full border border-slate-200 bg-white p-1 text-slate-500 transition hover:border-blue-200 hover:text-blue-700"
+                  aria-label="Limpar busca"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : null}
+            </label>
+            <p className="px-3 pt-2 text-[11px] font-semibold text-slate-500">
+              {hasSearch
+                ? `${filteredProducts.length} resultado(s) para "${searchQuery.trim()}"${selectedSource === "all" ? "" : ` em ${sourceOptions.find((source) => source.id === selectedSource)?.label}`}.`
+                : "Digite o nome de um produto para buscar em todas as categorias."}
+            </p>
           </div>
 
           <CategoryFilter
@@ -131,9 +175,17 @@ export default function ProductCatalog({ products, mostClickedProducts = [] }: P
       </nav>
 
       <main className="container mx-auto max-w-[1200px] px-4 py-8">
-        <ProductGrid products={filteredProducts} />
+        {filteredProducts.length > 0 ? (
+          <ProductGrid products={filteredProducts} />
+        ) : (
+          <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
+            <p className="text-lg font-black uppercase text-slate-900">Nenhum achadinho encontrado</p>
+            <p className="mx-auto mt-2 max-w-md text-sm font-semibold text-slate-500">
+              Tente buscar por outro termo ou selecione outra plataforma.
+            </p>
+          </div>
+        )}
       </main>
     </>
   );
 }
-
