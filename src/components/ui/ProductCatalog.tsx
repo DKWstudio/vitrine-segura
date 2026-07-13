@@ -75,7 +75,7 @@ function MostClickedStrip({ products }: { products: AffiliateProduct[] }) {
 export default function ProductCatalog({ products, mostClickedProducts = [] }: ProductCatalogProps) {
   const categories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(products.map((product) => product.category)));
-    return uniqueCategories.length > 0 ? uniqueCategories : ["Casa e Decora\u00e7\u00e3o"];
+    return uniqueCategories.length > 0 ? uniqueCategories : ["Casa e Decoração"];
   }, [products]);
 
   const [selectedCategory, setSelectedCategory] = useState(categories[0]);

@@ -411,7 +411,7 @@ function RuleForm({ rule }: { rule?: SearchRule }) {
   );
 }
 
-function ProductFields({ product, fixedSource, defaultCategory = "Casa e Decora\u00e7\u00e3o", accent = "blue" }: { product?: AffiliateProduct; fixedSource?: ProductSource; defaultCategory?: string; accent?: "blue" | "orange" | "black" }) {
+function ProductFields({ product, fixedSource, defaultCategory = "Casa e Decoração", accent = "blue" }: { product?: AffiliateProduct; fixedSource?: ProductSource; defaultCategory?: string; accent?: "blue" | "orange" | "black" }) {
   const selectedSource = fixedSource || product?.source || "mercadolivre";
   const linkAccentClass = accent === "orange"
     ? "border-orange-200 bg-orange-50 text-orange-700"
@@ -475,7 +475,7 @@ function ImportMercadoLivreForm() {
   return (
     <form action={importMercadoLivreProduct} className="grid gap-3 rounded-xl border border-blue-100 bg-blue-50 p-4 md:grid-cols-12">
       <input name="product_url" required placeholder="Cole aqui o link completo do produto Mercado Livre" className="rounded-lg border border-blue-200 px-3 py-2 text-sm md:col-span-5" />
-      <input name="category" list="admin-category-options" required defaultValue="Casa e Decora\u00e7\u00e3o" placeholder="Categoria" className="rounded-lg border border-blue-200 px-3 py-2 text-sm md:col-span-2" />
+      <input name="category" list="admin-category-options" required defaultValue="Casa e Decoração" placeholder="Categoria" className="rounded-lg border border-blue-200 px-3 py-2 text-sm md:col-span-2" />
       <input name="affiliate_url" placeholder="URL afiliada oficial opcional" className="rounded-lg border border-blue-200 px-3 py-2 text-sm md:col-span-3" />
       <input name="rating" type="number" step="0.1" min="0" max="5" placeholder="Nota opcional" className="rounded-lg border border-blue-200 px-3 py-2 text-sm md:col-span-1" />
       <label className="flex items-center gap-2 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 md:col-span-1">
@@ -503,7 +503,7 @@ function ShopeeImportForm() {
       <div className="grid gap-3 md:grid-cols-3">
         <label className="block rounded-xl border border-orange-200 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-orange-700 md:col-span-1">
           Categoria padrao
-          <input name="bulk_category" list="admin-category-options" defaultValue="Casa e Decora\u00e7\u00e3o" className="mt-1 w-full border-0 p-0 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none" />
+          <input name="bulk_category" list="admin-category-options" defaultValue="Casa e Decoração" className="mt-1 w-full border-0 p-0 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none" />
         </label>
         <label className="block rounded-xl border border-orange-200 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-orange-700 md:col-span-2">
           CSV oficial Shopee
@@ -526,7 +526,7 @@ function SheinImportForm() {
       </div>
       <label className="block rounded-xl border border-white/10 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-slate-700">
         Categoria padrao
-        <input name="bulk_category" list="admin-category-options" defaultValue="J\u00f3ias & Rel\u00f3gios" className="mt-1 w-full border-0 p-0 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none" />
+        <input name="bulk_category" list="admin-category-options" defaultValue="Jóias & Relógios" className="mt-1 w-full border-0 p-0 text-sm font-medium normal-case tracking-normal text-slate-950 outline-none" />
       </label>
       <label className="block rounded-xl border border-white/10 bg-white px-3 py-2 text-xs font-black uppercase tracking-wider text-slate-700">
         Texto da oferta Shein
@@ -578,7 +578,7 @@ function PlatformProductForms() {
           source="mercadolivre"
           title="Mercado Livre"
           description="Para quando a API bloquear a consulta ou voce quiser cadastrar com dados revisados."
-          defaultCategory="Casa e Decora\u00e7\u00e3o"
+          defaultCategory="Casa e Decoração"
           accent="blue"
           panelClass="border-blue-100 bg-white"
           eyebrowClass="text-blue-700"
@@ -597,7 +597,7 @@ function PlatformProductForms() {
           source="shopee"
           title="Shopee"
           description="Use link afiliado oficial quando cadastrar fora da API."
-          defaultCategory="Casa e Decora\u00e7\u00e3o"
+          defaultCategory="Casa e Decoração"
           accent="orange"
           panelClass="border-orange-100 bg-white"
           eyebrowClass="text-orange-700"
@@ -616,7 +616,7 @@ function PlatformProductForms() {
           source="shein"
           title="Shein"
           description="Ideal para ofertas com onelink.shein.com e curadoria visual depois."
-          defaultCategory="J\u00f3ias & Rel\u00f3gios"
+          defaultCategory="Jóias & Relógios"
           accent="black"
           panelClass="border-white/10 bg-white"
           eyebrowClass="text-slate-500"
