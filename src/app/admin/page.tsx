@@ -1340,6 +1340,8 @@ export default async function AdminPage({
 
         <AdminStats stats={data.stats} />
 
+        <CampaignsPanel campaigns={data.campaigns} clickCounts={data.campaignClickCountsByCampaign} />
+
         <section className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <p className="font-black uppercase tracking-wide">Mercado Livre em modo curadoria</p>
           <p className="mt-1 font-medium">Use apenas links oficiais gerados no painel de afiliados. O proprio suporte informou que a contabilizacao pode nao ocorrer em vitrine externa; a lista de recomendacoes do painel e o caminho mais seguro.</p>
@@ -1473,4 +1475,3 @@ export default async function AdminPage({
     </main>
   );
 }
-
