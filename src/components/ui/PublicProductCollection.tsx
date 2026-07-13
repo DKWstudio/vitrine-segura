@@ -126,7 +126,7 @@ export default function PublicProductCollection({
 
       <nav className="relative z-10 mt-8 border-b border-slate-200 bg-white/95 py-5 shadow-sm backdrop-blur-md">
         <div className="container mx-auto space-y-4 px-4">
-          <div className="flex flex-nowrap gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm md:flex-wrap md:overflow-visible">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm md:flex-wrap md:justify-center md:overflow-visible">
             {sourceLinks.map((link) => (
               <Link
                 key={`${link.href}-${link.label}`}
@@ -143,7 +143,7 @@ export default function PublicProductCollection({
             ))}
           </div>
 
-          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:gap-2.5 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:gap-2.5 md:mx-0 md:flex-wrap md:justify-center md:overflow-visible md:px-0 md:pb-0">
             {categories.map((category) => (
               <Link
                 key={category}

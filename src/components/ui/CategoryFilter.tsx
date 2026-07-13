@@ -27,7 +27,7 @@ export default function CategoryFilter({
   onSelectCategory,
 }: CategoryFilterProps) {
   return (
-    <div className="flex flex-nowrap items-center gap-2 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4 mask-fade-edge sm:gap-2.5 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0 md:[mask-image:none]">
+    <div className="flex flex-nowrap items-center gap-2 overflow-x-auto no-scrollbar pb-1 -mx-4 px-4 mask-fade-edge sm:gap-2.5 md:mx-0 md:flex-wrap md:justify-center md:overflow-visible md:px-0 md:pb-0 md:[mask-image:none]">
       {categories.map((category) => (
         <button
           key={category}
