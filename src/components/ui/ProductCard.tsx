@@ -65,7 +65,7 @@ export default function ProductCard({ product }: ProductCardProps) {
               : "bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-blue-100"
           }`}
         >
-          <span className="text-center">Ver detalhes</span>
+          <span className="text-center">Ver oferta</span>
           <ArrowRight className="h-3.5 w-3.5 flex-shrink-0" />
         </a>
 
