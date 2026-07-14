@@ -1,17 +1,17 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { absoluteUrl, defaultOgImage, defaultOgImageAlt, siteName } from "@/lib/seo";
 import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(absoluteUrl("/")),
   title: {
-    default: "Vitrine Segura | Achadinhos e ofertas afiliadas",
+    default: "Vitrine Segura | Achadinhos e ofertas selecionadas",
     template: `%s | ${siteName}`,
   },
-  description: "Achadinhos afiliados do Mercado Livre e Shopee organizados por categoria, preco e destaque.",
+  description: "Achadinhos do Mercado Livre, Shopee e Shein organizados por categoria, pre\u00E7o e destaque.",
   openGraph: {
-    title: "Vitrine Segura | Achadinhos e ofertas afiliadas",
-    description: "Produtos selecionados com links oficiais, categorias e ofertas atualizadas.",
+    title: "Vitrine Segura | Achadinhos e ofertas selecionadas",
+    description: "Produtos selecionados com links oficiais, categorias, campanhas e ofertas atualizadas.",
     url: absoluteUrl("/"),
     siteName,
     type: "website",
@@ -19,8 +19,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Vitrine Segura | Achadinhos e ofertas afiliadas",
-    description: "Produtos selecionados com links oficiais, categorias e ofertas atualizadas.",
+    title: "Vitrine Segura | Achadinhos e ofertas selecionadas",
+    description: "Produtos selecionados com links oficiais, categorias, campanhas e ofertas atualizadas.",
     images: [defaultOgImage],
   },
   robots: {

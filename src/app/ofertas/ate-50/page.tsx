@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import PublicProductCollection, {
   filterProductsBySource,
   getSourceFromParam,
@@ -10,13 +10,13 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Ofertas ate R$ 50",
-  description: "Achadinhos e produtos afiliados com preco ate R$ 50.",
+  description: "Achadinhos e produtos afiliados com pre\u00E7o ate R$ 50.",
   alternates: {
     canonical: absoluteUrl("/ofertas/ate-50"),
   },
   openGraph: {
     title: "Ofertas ate R$ 50 | Vitrine Segura",
-    description: "Produtos baratos selecionados no Mercado Livre e Shopee.",
+    description: "Produtos baratos selecionados no Mercado Livre, Shopee e Shein.",
     url: absoluteUrl("/ofertas/ate-50"),
     siteName,
     type: "website",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Ofertas ate R$ 50 | Vitrine Segura",
-    description: "Produtos baratos selecionados no Mercado Livre e Shopee.",
+    description: "Produtos baratos selecionados no Mercado Livre, Shopee e Shein.",
     images: [defaultOgImage],
   },
 };
@@ -54,5 +54,3 @@ export default async function OffersUpTo50Page({
     />
   );
 }
-
-

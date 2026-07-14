@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { CheckCircle, Shield, Star, Truck } from "lucide-react";
 import ProductGrid from "@/components/ui/ProductGrid";
-import { slugifyCategory } from "@/lib/seo";
+import { absoluteUrl, slugifyCategory } from "@/lib/seo";
 import type { AffiliateProduct, ProductSource } from "@/types/product";
 
 const sourceOptions: Array<{ id: "all" | ProductSource; label: string }> = [
   { id: "all", label: "Todos" },
   { id: "mercadolivre", label: "Mercado Livre" },
   { id: "shopee", label: "Shopee" },
+  { id: "shein", label: "Shein" },
 ];
 
 interface PublicProductCollectionProps {
@@ -44,6 +45,21 @@ function getCategoryHref(category: string, source: "all" | ProductSource) {
 }
 
 
+function buildCollectionJsonLd(title: string, basePath: string, products: AffiliateProduct[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: title,
+    url: absoluteUrl(basePath),
+    itemListElement: products.slice(0, 24).map((product, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      url: absoluteUrl(`/produto/${product.id}`),
+      name: product.title,
+      image: product.image_url || undefined,
+    })),
+  };
+}
 function TrustCards() {
   const items = [
     { icon: Star, text: "4.5+ Estrelas" },
@@ -87,6 +103,8 @@ export default function PublicProductCollection({
     a.localeCompare(b, "pt-BR"),
   );
 
+  const collectionJsonLd = buildCollectionJsonLd(title, basePath, products);
+
   const sourceLinks = showSourceFilter
     ? sourceOptions.map((source) => ({
         href: getSourceHref(basePath, source.id),
@@ -104,6 +122,10 @@ export default function PublicProductCollection({
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans antialiased text-slate-900">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }}
+      />
       <header className="relative overflow-hidden bg-[#0F172A] pb-24 pt-16 text-center">
         <div className="container relative z-10 mx-auto px-4">
           <Link href="/" className="mb-6 inline-block rounded-3xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">

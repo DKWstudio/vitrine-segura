@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PublicProductCollection, {
   filterProductsBySource,
@@ -35,7 +35,7 @@ export async function generateMetadata({
   }
 
   const title = `${category} | Vitrine Segura`;
-  const description = truncateDescription(`Achadinhos e ofertas em ${category} no Mercado Livre e Shopee.`);
+  const description = truncateDescription(`Achadinhos e ofertas em ${category} no Mercado Livre, Shopee e Shein.`);
 
   return {
     title,
@@ -82,7 +82,7 @@ export default async function CategoryPage({
   return (
     <PublicProductCollection
       title={category}
-      subtitle={`Achadinhos ativos na categoria ${category}. Filtre por Mercado Livre ou Shopee.`}
+      subtitle={`Achadinhos ativos na categoria ${category}. Filtre por Mercado Livre, Shopee ou Shein.`}
       products={products}
       allProducts={allProducts}
       basePath={`/categoria/${slug}`}

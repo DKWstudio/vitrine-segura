@@ -5,13 +5,75 @@ import ProductCatalog from "@/components/ui/ProductCatalog";
 import VipGroupBanner from "@/components/ui/VipGroupBanner";
 import { getActiveCampaigns } from "@/lib/campaigns";
 import { getActiveProducts, getMostClickedProducts } from "@/lib/products";
+import { absoluteUrl, defaultOgImage, defaultOgImageAlt, siteName } from "@/lib/seo";
+import type { AffiliateProduct } from "@/types/product";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Achadinhos uteis",
-  description: "Produtos selecionados do Mercado Livre, Shopee e Shein por categorias, preco e destaque.",
+  title: "Achadinhos \u00FAteis",
+  description: "Produtos selecionados do Mercado Livre, Shopee e Shein por categorias, pre\u00E7o e destaque.",
+  alternates: {
+    canonical: absoluteUrl("/"),
+  },
+  openGraph: {
+    title: "Vitrine Segura | Achadinhos \u00FAteis e ofertas selecionadas",
+    description: "Produtos selecionados do Mercado Livre, Shopee e Shein com links oficiais e curadoria di\u00E1ria.",
+    url: absoluteUrl("/"),
+    siteName,
+    type: "website",
+    images: [{ url: defaultOgImage, width: 1200, height: 630, alt: defaultOgImageAlt }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Vitrine Segura | Achadinhos \u00FAteis",
+    description: "Curadoria de achadinhos, campanhas e ofertas com links oficiais.",
+    images: [defaultOgImage],
+  },
 };
+
+type PageSearchParams = Record<string, string | string[] | undefined>;
+
+function getSingleParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] || "" : value || "";
+}
+
+function buildHomeJsonLd(products: AffiliateProduct[]) {
+  const itemList = products.slice(0, 12).map((product, index) => ({
+    "@type": "ListItem",
+    position: index + 1,
+    url: absoluteUrl(`/produto/${product.id}`),
+    name: product.title,
+    image: product.image_url || undefined,
+  }));
+
+  return [
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: siteName,
+      url: absoluteUrl("/"),
+      logo: absoluteUrl("/img/vitrineSegura.png"),
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: siteName,
+      url: absoluteUrl("/"),
+      potentialAction: {
+        "@type": "SearchAction",
+        target: `${absoluteUrl("/")}?q={search_term_string}`,
+        "query-input": "required name=search_term_string",
+      },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      name: "Achadinhos em destaque da Vitrine Segura",
+      itemListElement: itemList,
+    },
+  ];
+}
 
 function TrustCards() {
   const items = [
@@ -40,15 +102,27 @@ function TrustCards() {
   );
 }
 
-export default async function VitrineSegura() {
+export default async function VitrineSegura({
+  searchParams,
+}: {
+  searchParams?: Promise<PageSearchParams>;
+}) {
+  const queryParams = searchParams ? await searchParams : {};
+  const initialSearchQuery = getSingleParam(queryParams.q).slice(0, 80);
   const [products, mostClickedProducts, campaigns] = await Promise.all([
     getActiveProducts(),
     getMostClickedProducts(8, 7),
     getActiveCampaigns(),
   ]);
+  const homeJsonLd = buildHomeJsonLd(products);
 
   return (
     <div id="top" className="min-h-screen bg-[#F8FAFC] font-sans antialiased text-slate-900">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homeJsonLd) }}
+      />
+
       <header className="bg-[#0F172A] pt-16 pb-24 text-center relative overflow-hidden">
         <div className="container mx-auto px-4 relative z-10">
           <div className="bg-white/5 p-4 rounded-3xl backdrop-blur-sm mb-6 border border-white/10 inline-block">
@@ -73,7 +147,11 @@ export default async function VitrineSegura() {
 
       <VipGroupBanner />
 
-      <ProductCatalog products={products} mostClickedProducts={mostClickedProducts} />
+      <ProductCatalog
+        products={products}
+        mostClickedProducts={mostClickedProducts}
+        initialSearchQuery={initialSearchQuery}
+      />
     </div>
   );
 }

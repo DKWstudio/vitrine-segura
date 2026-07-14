@@ -11,6 +11,7 @@ import type { AffiliateProduct, ProductSource } from "@/types/product";
 interface ProductCatalogProps {
   products: AffiliateProduct[];
   mostClickedProducts?: AffiliateProduct[];
+  initialSearchQuery?: string;
 }
 
 const sourceOptions: Array<{ id: "all" | ProductSource; label: string }> = [
@@ -80,15 +81,15 @@ function MostClickedStrip({ products }: { products: AffiliateProduct[] }) {
   );
 }
 
-export default function ProductCatalog({ products, mostClickedProducts = [] }: ProductCatalogProps) {
+export default function ProductCatalog({ products, mostClickedProducts = [], initialSearchQuery = "" }: ProductCatalogProps) {
   const categories = useMemo(() => {
     const uniqueCategories = Array.from(new Set(products.map((product) => product.category)));
-    return uniqueCategories.length > 0 ? uniqueCategories : ["Casa e Decoração"];
+    return uniqueCategories.length > 0 ? uniqueCategories : ["Casa e Decora\u00E7\u00E3o"];
   }, [products]);
 
   const [selectedCategory, setSelectedCategory] = useState(categories[0]);
   const [selectedSource, setSelectedSource] = useState<"all" | ProductSource>("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
 
   const normalizedQuery = normalizeSearchText(searchQuery);
 
