@@ -1,6 +1,7 @@
 import { MessageCircle, Send, Sparkles } from "lucide-react";
 
-const vipGroupUrl = process.env.NEXT_PUBLIC_VIP_GROUP_URL?.trim();
+const fallbackVipGroupUrl = "https://chat.whatsapp.com/LxGXGvPyy9NHerUxOD99Aj";
+const vipGroupUrl = process.env.NEXT_PUBLIC_VIP_GROUP_URL?.trim() || fallbackVipGroupUrl;
 
 export default function VipGroupBanner() {
   if (!vipGroupUrl) {
