@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowRight, Flame, ShoppingBag } from "lucide-react";
+import { ArrowRight, Flame, ShoppingBag, Sparkles, Star, Tag, TrendingUp } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import PriceTag from "@/components/ui/PriceTag";
 import RatingStars from "@/components/ui/RatingStars";
 import SourceBadge from "@/components/ui/SourceBadge";
@@ -10,8 +11,61 @@ interface ProductCardProps {
   product: AffiliateProduct;
 }
 
+function getProductTags(product: AffiliateProduct) {
+  const tags: Array<{ label: string; className: string; icon: LucideIcon }> = [];
+
+  if (product.is_featured) {
+    tags.push({
+      label: "Destaque",
+      className: "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-amber-200",
+      icon: Flame,
+    });
+  }
+
+  if (product.price <= 50) {
+    tags.push({
+      label: "Até R$ 50",
+      className: "bg-emerald-600 text-white shadow-emerald-100",
+      icon: Tag,
+    });
+  } else if (product.price <= 100) {
+    tags.push({
+      label: "Até R$ 100",
+      className: "bg-blue-600 text-white shadow-blue-100",
+      icon: Tag,
+    });
+  }
+
+  if (product.rating && product.rating >= 4.7) {
+    tags.push({
+      label: "Bem avaliado",
+      className: "bg-slate-950 text-white shadow-slate-200",
+      icon: Star,
+    });
+  }
+
+  if (product.sold_count && product.sold_count >= 100) {
+    tags.push({
+      label: "Popular",
+      className: "bg-purple-600 text-white shadow-purple-100",
+      icon: TrendingUp,
+    });
+  }
+
+  if (tags.length === 0 && product.source === "shein") {
+    tags.push({
+      label: "Curadoria",
+      className: "bg-pink-600 text-white shadow-pink-100",
+      icon: Sparkles,
+    });
+  }
+
+  return tags.slice(0, 2);
+}
+
 export default function ProductCard({ product }: ProductCardProps) {
   const detailUrl = `/produto/${product.id}`;
+  const visualTags = getProductTags(product);
 
   return (
     <div
@@ -21,14 +75,25 @@ export default function ProductCard({ product }: ProductCardProps) {
           : "border border-slate-100 shadow-sm hover:shadow-xl"
       }`}
     >
-      {product.is_featured ? (
-        <div className="absolute -top-3 -right-2 z-20 flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg uppercase tracking-tighter animate-bounce">
-          <Flame className="h-3 w-3 fill-white" />
-          Destaque
-        </div>
-      ) : null}
-
       <div className="relative aspect-square overflow-hidden rounded-t-3xl bg-slate-50">
+        {visualTags.length > 0 ? (
+          <div className="absolute left-3 top-3 z-20 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-1.5">
+            {visualTags.map((tag) => {
+              const Icon = tag.icon;
+
+              return (
+                <span
+                  key={tag.label}
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-tight shadow-lg ${tag.className}`}
+                >
+                  <Icon className="h-3 w-3 fill-current" />
+                  {tag.label}
+                </span>
+              );
+            })}
+          </div>
+        ) : null}
+
         {product.image_url ? (
           <img
             src={product.image_url}
