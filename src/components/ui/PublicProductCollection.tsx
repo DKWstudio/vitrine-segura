@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CheckCircle, Shield, Star, Truck } from "lucide-react";
 import ProductGrid from "@/components/ui/ProductGrid";
+import SiteFooter from "@/components/ui/SiteFooter";
 import { absoluteUrl, slugifyCategory } from "@/lib/seo";
 import type { AffiliateProduct, ProductSource } from "@/types/product";
 
@@ -183,6 +184,8 @@ export default function PublicProductCollection({
       <main className="container mx-auto max-w-[1200px] px-4 py-8">
         <ProductGrid products={products} />
       </main>
+
+      <SiteFooter />
     </div>
   );
 }

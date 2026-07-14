@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, CheckCircle, Shield, ShoppingBag, Star, Truck } 
 import PriceTag from "@/components/ui/PriceTag";
 import ProductGrid from "@/components/ui/ProductGrid";
 import ShareButtons from "@/components/ui/ShareButtons";
+import SiteFooter from "@/components/ui/SiteFooter";
 import SourceBadge from "@/components/ui/SourceBadge";
 import { getActiveProductById, getRelatedProducts } from "@/lib/products";
 import { absoluteUrl, defaultOgImage, siteName, truncateDescription } from "@/lib/seo";
@@ -249,6 +250,8 @@ export default async function ProductPage({
           <ProductGrid products={relatedProducts} />
         </section>
       ) : null}
+
+      <SiteFooter />
     </main>
   );
 }

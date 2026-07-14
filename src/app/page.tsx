@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { CheckCircle, Shield, Star, Truck } from "lucide-react";
 import CampaignCards from "@/components/ui/CampaignCards";
 import ProductCatalog from "@/components/ui/ProductCatalog";
+import SiteFooter from "@/components/ui/SiteFooter";
 import VipGroupBanner from "@/components/ui/VipGroupBanner";
 import { getActiveCampaigns } from "@/lib/campaigns";
 import { getActiveProducts, getMostClickedProducts } from "@/lib/products";
@@ -152,6 +153,8 @@ export default async function VitrineSegura({
         mostClickedProducts={mostClickedProducts}
         initialSearchQuery={initialSearchQuery}
       />
+
+      <SiteFooter />
     </div>
   );
 }
