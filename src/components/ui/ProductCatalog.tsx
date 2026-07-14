@@ -121,6 +121,31 @@ export default function ProductCatalog({ products, mostClickedProducts = [] }: P
             </div>
           </div>
 
+
+          <CategoryFilter
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+          />
+
+          <div className="flex flex-nowrap gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+            {sourceOptions.map((source) => (
+              <button
+                key={source.id}
+                onClick={() => setSelectedSource(source.id)}
+                className={`flex-shrink-0 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-wider transition-all ${
+                  selectedSource === source.id
+                    ? "border-blue-600 bg-blue-600 text-white shadow-sm"
+                    : "border-transparent text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                }`}
+              >
+                {source.label}
+              </button>
+            ))}
+          </div>
+
+          <MostClickedStrip products={mostClickedProducts} />
+
           <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
             <label className="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100 focus-within:bg-white focus-within:ring-blue-200">
               <Search className="h-5 w-5 flex-shrink-0 text-blue-600" />
@@ -148,29 +173,6 @@ export default function ProductCatalog({ products, mostClickedProducts = [] }: P
             </p>
           </div>
 
-          <CategoryFilter
-            categories={categories}
-            selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
-          />
-
-          <div className="flex flex-nowrap gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-            {sourceOptions.map((source) => (
-              <button
-                key={source.id}
-                onClick={() => setSelectedSource(source.id)}
-                className={`flex-shrink-0 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-wider transition-all ${
-                  selectedSource === source.id
-                    ? "border-blue-600 bg-blue-600 text-white shadow-sm"
-                    : "border-transparent text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                }`}
-              >
-                {source.label}
-              </button>
-            ))}
-          </div>
-
-          <MostClickedStrip products={mostClickedProducts} />
         </div>
       </nav>
 
