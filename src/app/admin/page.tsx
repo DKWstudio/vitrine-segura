@@ -1322,6 +1322,12 @@ export default async function AdminPage({
             </div>
           </div>
           <div className="flex flex-wrap gap-3 lg:justify-end">
+            <Link
+              href="/admin/divulgacao"
+              className="rounded-xl border border-blue-400/40 bg-blue-500 px-4 py-2 text-xs font-black uppercase text-white hover:bg-blue-400"
+            >
+              Gerador de posts
+            </Link>
             <a
               href="/api/auth/mercadolivre/start"
               className="rounded-xl bg-[#FFE600] px-4 py-2 text-xs font-black uppercase text-slate-950"
@@ -1346,10 +1352,6 @@ export default async function AdminPage({
 
         <AdminStats stats={data.stats} />
 
-        <MarketingGenerator
-          products={data.products}
-          clickCountsByProduct={data.clickCountsByProduct}
-        />
 
         <CampaignsPanel campaigns={data.campaigns} clickCounts={data.campaignClickCountsByCampaign} />
 
