@@ -105,6 +105,10 @@ function buildProductLine(product: AffiliateProduct, index: number, includeSourc
   return `${index + 1}. ${product.title}\n${formatCurrency(product.price)}${source}\n${getProductUrl(product.id)}`;
 }
 
+function buildInstagramProductLine(product: AffiliateProduct, index: number) {
+  return `${index + 1}. ${product.title}\n${formatCurrency(product.price)} - ${sourceLabels[product.source]}`;
+}
+
 function generateMessage({
   format,
   theme,
@@ -123,10 +127,11 @@ function generateMessage({
   const mainCollectionUrl = getMainCollectionUrl(theme, category, source);
   const vipGroupUrl = getVipGroupUrl();
   const productList = selectedProducts.map((product, index) => buildProductLine(product, index)).join("\n\n");
+  const instagramProductList = selectedProducts.map((product, index) => buildInstagramProductLine(product, index)).join("\n\n");
   const hashtags = getHashtags(source, theme, category);
 
   if (format === "instagram") {
-    return `${title}\n${mainCollectionUrl}\n\nSeparei esses produtos porque estao com bom potencial para compra rapida e uso no dia a dia.\n\n${productList}\n\nVeja todos os links oficiais no portal:\n${portalUrl}\n\nEntre no grupo VIP para receber primeiro:\n${vipGroupUrl}\n\n${hashtags}`;
+    return `${title}\n\nSeparei esses produtos porque estao com bom potencial para compra rapida e uso no dia a dia.\n\n${instagramProductList}\n\nLinks oficiais no portal da bio: @vitrine.segura\nEntre no grupo VIP pelo link da bio para receber primeiro.\n\n${hashtags}`;
   }
 
   if (format === "tiktok") {
