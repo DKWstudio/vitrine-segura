@@ -56,6 +56,28 @@ function getVipGroupUrl() {
   return "https://chat.whatsapp.com/LxGXGvPyy9NHerUxOD99Aj";
 }
 
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function getMainCollectionUrl(theme: MarketingTheme, category: string, source: SourceFilter) {
+  const portalUrl = getPortalUrl();
+
+  if (theme === "up_to_50") return `${portalUrl}/ofertas/ate-50`;
+  if (theme === "up_to_100") return `${portalUrl}/ofertas/ate-100`;
+  if (theme === "category" && category) return `${portalUrl}/categoria/${slugify(category)}`;
+  if (source === "shopee") return `${portalUrl}/shopee`;
+  if (source === "shein") return `${portalUrl}/shein`;
+  if (source === "mercadolivre") return `${portalUrl}/mercadolivre`;
+
+  return portalUrl;
+}
+
 function getThemeIntro(theme: MarketingTheme, category: string) {
   if (theme === "up_to_50") return "Achadinhos ate R$ 50 que valem a pena";
   if (theme === "up_to_100") return "Achadinhos ate R$ 100 para aproveitar hoje";
@@ -98,19 +120,20 @@ function generateMessage({
 }) {
   const title = getThemeIntro(theme, category);
   const portalUrl = getPortalUrl();
+  const mainCollectionUrl = getMainCollectionUrl(theme, category, source);
   const vipGroupUrl = getVipGroupUrl();
   const productList = selectedProducts.map((product, index) => buildProductLine(product, index)).join("\n\n");
   const hashtags = getHashtags(source, theme, category);
 
   if (format === "instagram") {
-    return `${title}\n\nSeparei esses produtos porque estao com bom potencial para compra rapida e uso no dia a dia.\n\n${productList}\n\nVeja todos os links oficiais no portal:\n${portalUrl}\n\nEntre no grupo VIP para receber primeiro:\n${vipGroupUrl}\n\n${hashtags}`;
+    return `${title}\n${mainCollectionUrl}\n\nSeparei esses produtos porque estao com bom potencial para compra rapida e uso no dia a dia.\n\n${productList}\n\nVeja todos os links oficiais no portal:\n${portalUrl}\n\nEntre no grupo VIP para receber primeiro:\n${vipGroupUrl}\n\n${hashtags}`;
   }
 
   if (format === "tiktok") {
-    return `Roteiro Reels/TikTok - ${title}\n\nCena 1: abre com o texto \"${title}\".\nCena 2: mostre produto por produto, com preco na tela.\nCena 3: feche com \"links no portal da Vitrine Segura\".\n\nProdutos para mostrar:\n\n${productList}\n\nLegenda curta:\n${title}. Links no portal: ${portalUrl}\n\n${hashtags}`;
+    return `Roteiro Reels/TikTok - ${title}\n\nCena 1: abre com o texto \"${title}\".\nCena 2: mostre produto por produto, com preco na tela.\nCena 3: feche com \"links no portal da Vitrine Segura\".\n\nProdutos para mostrar:\n\n${productList}\n\nLegenda curta:\n${title}. Links: ${mainCollectionUrl}\n\n${hashtags}`;
   }
 
-  return `${title}\n\nSeparei ${selectedProducts.length} oferta(s) para hoje:\n\n${productList}\n\nVeja mais achadinhos no portal:\n${portalUrl}\n\nGrupo VIP:\n${vipGroupUrl}`;
+  return `${title}\n${mainCollectionUrl}\n\nSeparei ${selectedProducts.length} oferta(s) para hoje:\n\n${productList}\n\nVeja mais achadinhos no portal:\n${portalUrl}\n\nGrupo VIP:\n${vipGroupUrl}`;
 }
 
 function scoreProduct(product: AffiliateProduct, theme: MarketingTheme, clickCountsByProduct: Record<string, number>) {
