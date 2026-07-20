@@ -158,7 +158,7 @@ function scoreProduct(product: AffiliateProduct, theme: MarketingTheme, clickCou
   const imageScore = product.image_url ? 4 : -8;
   const cheapScore = product.price <= 50 ? 10 : product.price <= 100 ? 5 : 0;
   const recency = product.created_at ? new Date(product.created_at).getTime() / 100000000000 : 0;
-  const variationScore = shuffleSeed > 0 ? seededRandom(shuffleSeed, product.id) * 35 : 0;
+  const variationScore = shuffleSeed > 0 ? seededRandom(shuffleSeed, product.id) * 10000 : 0;
 
   if (theme === "most_clicked") return clickScore + featuredScore + affiliateScore + imageScore + variationScore;
   if (theme === "featured") return featuredScore + clickScore + affiliateScore + imageScore + variationScore;
@@ -243,7 +243,7 @@ export default function MarketingGenerator({ products, clickCountsByProduct }: M
   }
 
   function shuffleSelection() {
-    setShuffleSeed((currentSeed) => currentSeed + 1);
+    setShuffleSeed(Date.now());
   }
 
   function removeProduct(productId: string) {
