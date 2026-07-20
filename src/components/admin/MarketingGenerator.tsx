@@ -161,6 +161,11 @@ export default function MarketingGenerator({ products, clickCountsByProduct }: M
     [category, format, selectedProducts, source, theme],
   );
 
+  const selectedImageUrls = useMemo(
+    () => selectedProducts.map((product) => product.image_url).filter((url): url is string => Boolean(url)),
+    [selectedProducts],
+  );
+
   async function copyMessage() {
     await navigator.clipboard.writeText(message);
     setCopied(true);
@@ -172,6 +177,18 @@ export default function MarketingGenerator({ products, clickCountsByProduct }: M
     await navigator.clipboard.writeText(links);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2500);
+  }
+
+  async function copyImageUrls() {
+    await navigator.clipboard.writeText(selectedImageUrls.join("\n"));
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2500);
+  }
+
+  function openImages() {
+    for (const imageUrl of selectedImageUrls.slice(0, 10)) {
+      window.open(imageUrl, "_blank", "noopener,noreferrer");
+    }
   }
 
   const whatsappShareUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -253,6 +270,12 @@ export default function MarketingGenerator({ products, clickCountsByProduct }: M
             <button type="button" onClick={copyLinks} className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-3 text-xs font-black uppercase text-blue-700">
               Copiar links
             </button>
+            <button type="button" onClick={copyImageUrls} disabled={selectedImageUrls.length === 0} className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-xs font-black uppercase text-amber-700 disabled:cursor-not-allowed disabled:opacity-40">
+              Copiar imagens
+            </button>
+            <button type="button" onClick={openImages} disabled={selectedImageUrls.length === 0} className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-xs font-black uppercase text-slate-700 disabled:cursor-not-allowed disabled:opacity-40">
+              Abrir imagens
+            </button>
             <a href={whatsappShareUrl} target="_blank" rel="noreferrer" className="rounded-xl border border-green-200 bg-green-50 px-5 py-3 text-xs font-black uppercase text-green-700">
               Abrir WhatsApp
             </a>
@@ -282,6 +305,11 @@ export default function MarketingGenerator({ products, clickCountsByProduct }: M
                     <p className="line-clamp-2 text-xs font-black leading-snug text-slate-900">{product.title}</p>
                     <p className="mt-1 text-[11px] font-bold text-slate-500">{sourceLabels[product.source]} - {formatCurrency(product.price)}</p>
                     <p className="text-[11px] font-bold text-blue-600">{clickCountsByProduct[product.id] || 0} clique(s)</p>
+                    {product.image_url ? (
+                      <a href={product.image_url} target="_blank" rel="noreferrer" className="mt-1 inline-block text-[11px] font-black uppercase text-amber-700">
+                        Abrir imagem
+                      </a>
+                    ) : null}
                   </div>
                 </div>
               ))}
