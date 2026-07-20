@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AffiliateProduct, ProductSource } from "@/types/product";
 
 type MarketingFormat = "whatsapp" | "instagram" | "tiktok";
@@ -141,20 +141,31 @@ function generateMessage({
   return `${title}\n${mainCollectionUrl}\n\nSeparei ${selectedProducts.length} oferta(s) para hoje:\n\n${productList}\n\nVeja mais achadinhos no portal:\n${portalUrl}\n\nGrupo VIP:\n${vipGroupUrl}`;
 }
 
-function scoreProduct(product: AffiliateProduct, theme: MarketingTheme, clickCountsByProduct: Record<string, number>) {
+function seededRandom(seed: number, value: string) {
+  let hash = seed || 1;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+
+  return (hash % 1000) / 1000;
+}
+
+function scoreProduct(product: AffiliateProduct, theme: MarketingTheme, clickCountsByProduct: Record<string, number>, shuffleSeed = 0) {
   const clickScore = (clickCountsByProduct[product.id] || 0) * 10;
   const featuredScore = product.is_featured ? 20 : 0;
   const affiliateScore = product.affiliate_url ? 8 : -40;
   const imageScore = product.image_url ? 4 : -8;
   const cheapScore = product.price <= 50 ? 10 : product.price <= 100 ? 5 : 0;
   const recency = product.created_at ? new Date(product.created_at).getTime() / 100000000000 : 0;
+  const variationScore = shuffleSeed > 0 ? seededRandom(shuffleSeed, product.id) * 35 : 0;
 
-  if (theme === "most_clicked") return clickScore + featuredScore + affiliateScore + imageScore;
-  if (theme === "featured") return featuredScore + clickScore + affiliateScore + imageScore;
-  if (theme === "up_to_50" || theme === "up_to_100") return cheapScore + clickScore + featuredScore + affiliateScore + imageScore;
-  if (theme === "recent") return recency + affiliateScore + imageScore + featuredScore;
+  if (theme === "most_clicked") return clickScore + featuredScore + affiliateScore + imageScore + variationScore;
+  if (theme === "featured") return featuredScore + clickScore + affiliateScore + imageScore + variationScore;
+  if (theme === "up_to_50" || theme === "up_to_100") return cheapScore + clickScore + featuredScore + affiliateScore + imageScore + variationScore;
+  if (theme === "recent") return recency + affiliateScore + imageScore + featuredScore + variationScore;
 
-  return clickScore + featuredScore + affiliateScore + imageScore;
+  return clickScore + featuredScore + affiliateScore + imageScore + variationScore;
 }
 
 export default function MarketingGenerator({ products, clickCountsByProduct }: MarketingGeneratorProps) {
@@ -164,25 +175,37 @@ export default function MarketingGenerator({ products, clickCountsByProduct }: M
   const [category, setCategory] = useState("");
   const [count, setCount] = useState(5);
   const [copied, setCopied] = useState(false);
+  const [shuffleSeed, setShuffleSeed] = useState(0);
+  const [excludedProductIds, setExcludedProductIds] = useState<string[]>([]);
 
   const categories = useMemo(
     () => Array.from(new Set(products.map((product) => product.category).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR")),
     [products],
   );
 
-  const selectedProducts = useMemo(() => {
-    const filtered = products
+  useEffect(() => {
+    setExcludedProductIds([]);
+    setShuffleSeed(0);
+  }, [category, count, source, theme]);
+
+  const eligibleProducts = useMemo(() => {
+    return products
       .filter((product) => product.is_active)
       .filter((product) => product.affiliate_url)
       .filter((product) => (source === "all" ? true : product.source === source))
       .filter((product) => (theme === "category" && category ? product.category === category : true))
       .filter((product) => (theme === "up_to_50" ? product.price <= 50 : true))
       .filter((product) => (theme === "up_to_100" ? product.price <= 100 : true));
+  }, [category, products, source, theme]);
 
-    return filtered
-      .sort((a, b) => scoreProduct(b, theme, clickCountsByProduct) - scoreProduct(a, theme, clickCountsByProduct))
+  const selectedProducts = useMemo(() => {
+    const excludedSet = new Set(excludedProductIds);
+
+    return eligibleProducts
+      .filter((product) => !excludedSet.has(product.id))
+      .sort((a, b) => scoreProduct(b, theme, clickCountsByProduct, shuffleSeed) - scoreProduct(a, theme, clickCountsByProduct, shuffleSeed))
       .slice(0, count);
-  }, [category, clickCountsByProduct, count, products, source, theme]);
+  }, [clickCountsByProduct, count, eligibleProducts, excludedProductIds, shuffleSeed, theme]);
 
   const message = useMemo(
     () => generateMessage({ format, theme, source, category, selectedProducts }),
@@ -219,6 +242,18 @@ export default function MarketingGenerator({ products, clickCountsByProduct }: M
     }
   }
 
+  function shuffleSelection() {
+    setShuffleSeed((currentSeed) => currentSeed + 1);
+  }
+
+  function removeProduct(productId: string) {
+    setExcludedProductIds((currentIds) => Array.from(new Set([...currentIds, productId])));
+  }
+
+  function resetRemovedProducts() {
+    setExcludedProductIds([]);
+  }
+
   const whatsappShareUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
 
   return (
@@ -231,8 +266,18 @@ export default function MarketingGenerator({ products, clickCountsByProduct }: M
             Monte textos prontos para WhatsApp, Instagram e TikTok usando produtos ativos, com afiliado e melhor desempenho.
           </p>
         </div>
-        <div className="rounded-xl bg-blue-50 px-4 py-3 text-xs font-bold text-blue-800">
-          {selectedProducts.length} produto(s) selecionado(s)
+        <div className="flex flex-wrap gap-2 md:justify-end">
+          <button type="button" onClick={shuffleSelection} className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs font-black uppercase text-blue-700 hover:bg-blue-100">
+            Trocar selecao
+          </button>
+          {excludedProductIds.length > 0 ? (
+            <button type="button" onClick={resetRemovedProducts} className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-black uppercase text-slate-700 hover:bg-slate-50">
+              Restaurar removidos
+            </button>
+          ) : null}
+          <div className="rounded-xl bg-blue-50 px-4 py-3 text-xs font-bold text-blue-800">
+            {selectedProducts.length} de {eligibleProducts.length} produto(s)
+          </div>
         </div>
       </div>
 
@@ -333,11 +378,16 @@ export default function MarketingGenerator({ products, clickCountsByProduct }: M
                     <p className="line-clamp-2 text-xs font-black leading-snug text-slate-900">{product.title}</p>
                     <p className="mt-1 text-[11px] font-bold text-slate-500">{sourceLabels[product.source]} - {formatCurrency(product.price)}</p>
                     <p className="text-[11px] font-bold text-blue-600">{clickCountsByProduct[product.id] || 0} clique(s)</p>
-                    {product.image_url ? (
-                      <a href={product.image_url} target="_blank" rel="noreferrer" className="mt-1 inline-block text-[11px] font-black uppercase text-amber-700">
-                        Abrir imagem
-                      </a>
-                    ) : null}
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                      {product.image_url ? (
+                        <a href={product.image_url} target="_blank" rel="noreferrer" className="text-[11px] font-black uppercase text-amber-700">
+                          Abrir imagem
+                        </a>
+                      ) : null}
+                      <button type="button" onClick={() => removeProduct(product.id)} className="text-[11px] font-black uppercase text-red-600">
+                        Remover
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
