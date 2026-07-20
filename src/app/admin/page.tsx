@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import AdminNotice from "@/components/admin/AdminNotice";
 import CopyProductLinkButton from "@/components/admin/CopyProductLinkButton";
 import DeleteProductButton from "@/components/admin/DeleteProductButton";
+import MarketingGenerator from "@/components/admin/MarketingGenerator";
 import ShopeeAffiliateWarning from "@/components/admin/ShopeeAffiliateWarning";
 import { isAdminAuthenticated } from "@/lib/admin/auth";
 import { campaignColumns, normalizeSupabaseCampaign } from "@/lib/campaigns";
@@ -1344,6 +1345,11 @@ export default async function AdminPage({
         </datalist>
 
         <AdminStats stats={data.stats} />
+
+        <MarketingGenerator
+          products={data.products}
+          clickCountsByProduct={data.clickCountsByProduct}
+        />
 
         <CampaignsPanel campaigns={data.campaigns} clickCounts={data.campaignClickCountsByCampaign} />
 
