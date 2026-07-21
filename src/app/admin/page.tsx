@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import AdminNotice from "@/components/admin/AdminNotice";
 import CopyProductLinkButton from "@/components/admin/CopyProductLinkButton";
 import DeleteProductButton from "@/components/admin/DeleteProductButton";
-import MarketingGenerator from "@/components/admin/MarketingGenerator";
+import ProductAdButton from "@/components/admin/ProductAdButton";
 import ShopeeAffiliateWarning from "@/components/admin/ShopeeAffiliateWarning";
 import { isAdminAuthenticated } from "@/lib/admin/auth";
 import { campaignColumns, normalizeSupabaseCampaign } from "@/lib/campaigns";
@@ -1209,6 +1209,10 @@ function ProductsTable({
                   <CopyProductLinkButton
                     productId={product.id}
                     className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-center text-xs font-black uppercase text-blue-700 hover:bg-blue-50"
+                  />
+                  <ProductAdButton
+                    product={product}
+                    className="rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-center text-xs font-black uppercase text-purple-700 hover:bg-purple-100"
                   />
                   <form action={toggleProductActive}>
                     <input type="hidden" name="return_to" value={returnTo} />
