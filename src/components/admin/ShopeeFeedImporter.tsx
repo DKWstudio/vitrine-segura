@@ -41,8 +41,15 @@ const defaultCategories = [
 ];
 
 function parseNumber(value: string) {
-  if (!value.trim()) return null;
-  const parsed = Number(value.replace(/R\$/gi, "").replace(/\s/g, "").replace(/\./g, "").replace(",", "."));
+  const cleaned = value.replace(/R\$/gi, "").replace(/%/g, "").replace(/\s/g, "").trim();
+
+  if (!cleaned) return null;
+
+  const normalized = cleaned.includes(",")
+    ? cleaned.replace(/\./g, "").replace(",", ".")
+    : cleaned;
+  const parsed = Number(normalized);
+
   return Number.isFinite(parsed) ? parsed : null;
 }
 

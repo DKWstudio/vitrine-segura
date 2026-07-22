@@ -756,7 +756,18 @@ function numberFromUnknown(value: unknown) {
     return null;
   }
 
-  return parseBulkNumber(value);
+  const cleaned = value.replace(/R\$/gi, "").replace(/%/g, "").replace(/\s/g, "").trim();
+
+  if (!cleaned) {
+    return null;
+  }
+
+  const normalized = cleaned.includes(",")
+    ? cleaned.replace(/\./g, "").replace(",", ".")
+    : cleaned;
+  const parsed = Number(normalized);
+
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function getShopeeFeedRow(input: ShopeeFeedProductInput, publishDirect: boolean) {
