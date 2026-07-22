@@ -19,6 +19,7 @@ type FeedCandidate = {
   affiliate_link: string;
   raw_category1: string;
   raw_category2: string;
+  original_category: string;
   score: number;
   isDuplicate: boolean;
 };
@@ -29,14 +30,14 @@ type ShopeeFeedImporterProps = {
 };
 
 const defaultCategories = [
-  "Casa e Decoração",
-  "Vestuário e Acessórios",
-  "Jóias & Relógios",
+  "Casa e Decora\u00e7\u00e3o",
+  "Vestu\u00e1rio e Acess\u00f3rios",
+  "J\u00f3ias & Rel\u00f3gios",
   "Beleza",
   "Esportes e Fitness",
   "Celulares e Telefones",
-  "Eletrônicos, Áudio e Vídeo",
-  "Eletrodomésticos",
+  "Eletr\u00f4nicos, \u00c1udio e V\u00eddeo",
+  "Eletrodom\u00e9sticos",
   "Ferramentas",
 ];
 
@@ -136,17 +137,17 @@ function normalizeText(value: string) {
 function mapShopeeCategory(category1: string, category2: string) {
   const source = normalizeText(`${category1} ${category2}`);
 
-  if (/home|living|kitchen|party|garden|furniture|decor/.test(source)) return "Casa e Decoração";
+  if (/home|living|kitchen|party|garden|furniture|decor/.test(source)) return "Casa e Decora\u00e7\u00e3o";
   if (/beauty|health|personal care|makeup|skincare/.test(source)) return "Beleza";
-  if (/fashion|clothes|bags|shoes|apparel|women|men|baby|kids/.test(source)) return "Vestuário e Acessórios";
-  if (/jewel|watch|accessor/.test(source)) return "Jóias & Relógios";
+  if (/fashion|clothes|bags|shoes|apparel|women|men|baby|kids/.test(source)) return "Vestu\u00e1rio e Acess\u00f3rios";
+  if (/jewel|watch|accessor/.test(source)) return "J\u00f3ias & Rel\u00f3gios";
   if (/sports|outdoor|fitness/.test(source)) return "Esportes e Fitness";
   if (/mobile|phone|tablet/.test(source)) return "Celulares e Telefones";
-  if (/computer|camera|audio|video|gaming|electronic/.test(source)) return "Eletrônicos, Áudio e Vídeo";
-  if (/appliance/.test(source)) return "Eletrodomésticos";
+  if (/computer|camera|audio|video|gaming|electronic/.test(source)) return "Eletr\u00f4nicos, \u00c1udio e V\u00eddeo";
+  if (/appliance/.test(source)) return "Eletrodom\u00e9sticos";
   if (/tool|improvement|hardware/.test(source)) return "Ferramentas";
 
-  return "Casa e Decoração";
+  return "Casa e Decora\u00e7\u00e3o";
 }
 
 function rowToCandidate(row: FeedRow, existingIds: Set<string>, forcedCategory: string) {
@@ -183,6 +184,7 @@ function rowToCandidate(row: FeedRow, existingIds: Set<string>, forcedCategory: 
     affiliate_link: affiliateLink,
     raw_category1: row.global_category1 || "",
     raw_category2: row.global_category2 || "",
+    original_category: [row.global_category1 || "", row.global_category2 || ""].filter(Boolean).join(" / "),
     score,
     isDuplicate: existingIds.has(`shopee-${itemid}`),
   } satisfies FeedCandidate;
@@ -199,11 +201,14 @@ export default function ShopeeFeedImporter({ categoryOptions, existingShopeeExte
   const [minDiscount, setMinDiscount] = useState("10");
   const [maxResults, setMaxResults] = useState("100");
   const [query, setQuery] = useState("");
+  const [originalCategoryFilter, setOriginalCategoryFilter] = useState("");
   const [forcedCategory, setForcedCategory] = useState("");
+  const [sortMode, setSortMode] = useState("score");
   const [hideDuplicates, setHideDuplicates] = useState(true);
 
   const existingIds = useMemo(() => new Set(existingShopeeExternalIds), [existingShopeeExternalIds]);
   const categories = useMemo(() => Array.from(new Set([...defaultCategories, ...categoryOptions])).sort((a, b) => a.localeCompare(b, "pt-BR")), [categoryOptions]);
+  const originalCategoryOptions = useMemo(() => Array.from(new Set(feedRows.map((row) => [row.global_category1 || "", row.global_category2 || ""].filter(Boolean).join(" / ")).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR")), [feedRows]);
   const selectedCandidates = useMemo(() => {
     const selectedSet = new Set(selectedIds);
     return candidates.filter((candidate) => selectedSet.has(candidate.itemid));
@@ -236,7 +241,9 @@ export default function ShopeeFeedImporter({ categoryOptions, existingShopeeExte
       const rating = parseNumber(candidate.item_rating) ?? 0;
       const discount = parseNumber(candidate.discount_percentage) ?? 0;
       const searchable = normalizeText(`${candidate.title} ${candidate.description} ${candidate.raw_category1} ${candidate.raw_category2}`);
+      const originalCategory = candidate.original_category;
 
+      if (originalCategoryFilter && originalCategory !== originalCategoryFilter) continue;
       if (salePrice > maxPriceValue) continue;
       if (rating < minRatingValue) continue;
       if (discount < minDiscountValue) continue;
@@ -246,7 +253,14 @@ export default function ShopeeFeedImporter({ categoryOptions, existingShopeeExte
     }
 
     const nextCandidates = parsedCandidates
-      .sort((a, b) => b.score - a.score)
+      .sort((a, b) => {
+        if (sortMode === "discount") return (parseNumber(b.discount_percentage) || 0) - (parseNumber(a.discount_percentage) || 0);
+        if (sortMode === "rating") return (parseNumber(b.item_rating) || 0) - (parseNumber(a.item_rating) || 0);
+        if (sortMode === "price_asc") return (parseNumber(a.sale_price || a.price) || 0) - (parseNumber(b.sale_price || b.price) || 0);
+        if (sortMode === "price_desc") return (parseNumber(b.sale_price || b.price) || 0) - (parseNumber(a.sale_price || a.price) || 0);
+
+        return b.score - a.score;
+      })
       .slice(0, maxResultsValue);
 
     setCandidates(nextCandidates);
@@ -279,6 +293,12 @@ export default function ShopeeFeedImporter({ categoryOptions, existingShopeeExte
 
   function clearSelection() {
     setSelectedIds([]);
+  }
+
+  function updateCandidateCategory(itemid: string, category: string) {
+    setCandidates((currentCandidates) =>
+      currentCandidates.map((candidate) => candidate.itemid === itemid ? { ...candidate, category } : candidate),
+    );
   }
 
   return (
@@ -315,10 +335,27 @@ export default function ShopeeFeedImporter({ categoryOptions, existingShopeeExte
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ex.: martelo, cozinha, organizador" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold normal-case tracking-normal" />
         </label>
         <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 lg:col-span-2">
-          Categoria forcada opcional
+          Categoria original Shopee
+          <select value={originalCategoryFilter} onChange={(event) => setOriginalCategoryFilter(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold normal-case tracking-normal text-slate-950">
+            <option value="">Todas as categorias originais</option>
+            {originalCategoryOptions.map((category) => <option key={category} value={category}>{category}</option>)}
+          </select>
+        </label>
+        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 lg:col-span-2">
+          Categoria nossa padrao
           <select value={forcedCategory} onChange={(event) => setForcedCategory(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold normal-case tracking-normal text-slate-950">
             <option value="">Mapear automaticamente</option>
             {categories.map((category) => <option key={category} value={category}>{category}</option>)}
+          </select>
+        </label>
+        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 lg:col-span-2">
+          Ordenar por
+          <select value={sortMode} onChange={(event) => setSortMode(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold normal-case tracking-normal text-slate-950">
+            <option value="score">Melhor pontuacao</option>
+            <option value="discount">Maior desconto</option>
+            <option value="rating">Melhor avaliacao</option>
+            <option value="price_asc">Menor preco</option>
+            <option value="price_desc">Maior preco</option>
           </select>
         </label>
         <label className="flex items-end gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 lg:col-span-2">
@@ -336,7 +373,7 @@ export default function ShopeeFeedImporter({ categoryOptions, existingShopeeExte
           <span>{status}</span>
         </div>
         <p className="text-xs font-semibold text-orange-800">
-          Este feed nao trouxe coluna de comissao. A curadoria usa preco, desconto, avaliacao, imagem e link afiliado/curto quando disponivel.
+          Este feed nao trouxe coluna de comissao nem quantidade vendida. A curadoria usa preco, desconto, avaliacao, imagem, categoria original e link afiliado/curto quando disponivel.
         </p>
       </div>
 
@@ -380,9 +417,15 @@ export default function ShopeeFeedImporter({ categoryOptions, existingShopeeExte
                         {candidate.isDuplicate ? <span className="rounded-full bg-red-50 px-2 py-1 text-red-700">Duplicado</span> : null}
                       </div>
                       <h3 className="mt-2 line-clamp-3 text-sm font-black leading-snug text-slate-950">{candidate.title}</h3>
-                      <p className="mt-1 text-xs font-bold text-slate-500">{candidate.raw_category1} / {candidate.raw_category2}</p>
+                      <p className="mt-1 text-xs font-bold text-slate-500">Original: {candidate.original_category || "Sem categoria"}</p>
                     </div>
                   </div>
+                  <label className="mt-3 block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                    Publicar em
+                    <select value={candidate.category} onChange={(event) => updateCandidateCategory(candidate.itemid, event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold normal-case tracking-normal text-slate-950">
+                      {categories.map((category) => <option key={category} value={category}>{category}</option>)}
+                    </select>
+                  </label>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-black">
                     <span className="rounded-full bg-white px-2 py-1 text-slate-950">{formatCurrency(candidate.sale_price || candidate.price)}</span>
                     <span className="rounded-full bg-green-50 px-2 py-1 text-green-700">Nota {candidate.item_rating || "-"}</span>
