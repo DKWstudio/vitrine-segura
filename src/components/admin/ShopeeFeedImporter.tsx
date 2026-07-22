@@ -204,10 +204,12 @@ export default function ShopeeFeedImporter({ categoryOptions, existingShopeeExte
   const [originalCategoryFilter, setOriginalCategoryFilter] = useState("");
   const [forcedCategory, setForcedCategory] = useState("");
   const [sortMode, setSortMode] = useState("score");
+  const [newCategory, setNewCategory] = useState("");
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
   const [hideDuplicates, setHideDuplicates] = useState(true);
 
   const existingIds = useMemo(() => new Set(existingShopeeExternalIds), [existingShopeeExternalIds]);
-  const categories = useMemo(() => Array.from(new Set([...defaultCategories, ...categoryOptions])).sort((a, b) => a.localeCompare(b, "pt-BR")), [categoryOptions]);
+  const categories = useMemo(() => Array.from(new Set([...defaultCategories, ...categoryOptions, ...customCategories])).sort((a, b) => a.localeCompare(b, "pt-BR")), [categoryOptions, customCategories]);
   const originalCategoryOptions = useMemo(() => Array.from(new Set(feedRows.map((row) => [row.global_category1 || "", row.global_category2 || ""].filter(Boolean).join(" / ")).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR")), [feedRows]);
   const selectedCandidates = useMemo(() => {
     const selectedSet = new Set(selectedIds);
@@ -301,6 +303,18 @@ export default function ShopeeFeedImporter({ categoryOptions, existingShopeeExte
     );
   }
 
+  function createCategory() {
+    const category = newCategory.trim();
+
+    if (!category) return;
+
+    setCustomCategories((currentCategories) => currentCategories.some((item) => normalizeText(item) === normalizeText(category)) ? currentCategories : [...currentCategories, category]);
+    setForcedCategory(category);
+    setCandidates((currentCandidates) => currentCandidates.map((candidate) => ({ ...candidate, category })));
+    setNewCategory("");
+    setStatus(`Categoria "${category}" criada nesta importacao e aplicada aos candidatos exibidos.`);
+  }
+
   return (
     <section className="space-y-5 rounded-2xl border border-orange-100 bg-white p-4 shadow-sm md:p-5">
       <div>
@@ -348,6 +362,15 @@ export default function ShopeeFeedImporter({ categoryOptions, existingShopeeExte
             {categories.map((category) => <option key={category} value={category}>{category}</option>)}
           </select>
         </label>
+        <div className="rounded-xl border border-orange-100 bg-orange-50 p-3 lg:col-span-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-orange-700">
+            Criar categoria nossa
+            <input value={newCategory} onChange={(event) => setNewCategory(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); createCategory(); } }} placeholder="Ex.: Infantil, Pets, Automotivo" className="mt-1 w-full rounded-xl border border-orange-200 bg-white px-3 py-2 text-sm font-bold normal-case tracking-normal text-slate-950" />
+          </label>
+          <button type="button" onClick={createCategory} className="mt-2 w-full rounded-xl bg-slate-950 px-4 py-2 text-xs font-black uppercase text-white hover:bg-slate-800">
+            Criar categoria
+          </button>
+        </div>
         <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 lg:col-span-2">
           Ordenar por
           <select value={sortMode} onChange={(event) => setSortMode(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold normal-case tracking-normal text-slate-950">
