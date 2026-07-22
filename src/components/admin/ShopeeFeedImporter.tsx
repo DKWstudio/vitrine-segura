@@ -184,6 +184,7 @@ function rowToCandidate(row: FeedRow, existingIds: Set<string>, forcedCategory: 
 export default function ShopeeFeedImporter({ categoryOptions, existingShopeeExternalIds }: ShopeeFeedImporterProps) {
   const [fileName, setFileName] = useState("");
   const [status, setStatus] = useState("");
+  const [feedRows, setFeedRows] = useState<FeedRow[]>([]);
   const [candidates, setCandidates] = useState<FeedCandidate[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [minRating, setMinRating] = useState("4.7");
@@ -201,23 +202,21 @@ export default function ShopeeFeedImporter({ categoryOptions, existingShopeeExte
     return candidates.filter((candidate) => selectedSet.has(candidate.itemid));
   }, [candidates, selectedIds]);
 
-  async function analyzeFile(file: File | null) {
-    if (!file) return;
+  function applyFilters(rows = feedRows) {
+    if (rows.length === 0) {
+      setStatus("Escolha um arquivo CSV antes de aplicar filtros.");
+      return;
+    }
 
-    setFileName(file.name);
-    setStatus("Lendo arquivo...");
+    setStatus("Aplicando filtros...");
     setCandidates([]);
     setSelectedIds([]);
-
-    const text = await file.text();
-    setStatus("Analisando CSV...");
 
     const minRatingValue = parseNumber(minRating) ?? 0;
     const maxPriceValue = parseNumber(maxPrice) ?? Number.POSITIVE_INFINITY;
     const minDiscountValue = parseNumber(minDiscount) ?? 0;
     const maxResultsValue = Math.min(parseNumber(maxResults) ?? 100, 500);
     const normalizedQuery = normalizeText(query);
-    const rows = parseCsv(text);
     const parsedCandidates: FeedCandidate[] = [];
 
     for (const row of rows) {
@@ -248,6 +247,21 @@ export default function ShopeeFeedImporter({ categoryOptions, existingShopeeExte
     setStatus(`${rows.length.toLocaleString("pt-BR")} linhas analisadas. ${nextCandidates.length} candidato(s) exibido(s).`);
   }
 
+  async function analyzeFile(file: File | null) {
+    if (!file) return;
+
+    setFileName(file.name);
+    setStatus("Lendo arquivo...");
+    setCandidates([]);
+    setSelectedIds([]);
+
+    const text = await file.text();
+    setStatus("Analisando CSV...");
+
+    const rows = parseCsv(text);
+    setFeedRows(rows);
+    applyFilters(rows);
+  }
   function toggleCandidate(itemid: string) {
     setSelectedIds((currentIds) => currentIds.includes(itemid) ? currentIds.filter((id) => id !== itemid) : [...currentIds, itemid]);
   }
@@ -304,11 +318,19 @@ export default function ShopeeFeedImporter({ categoryOptions, existingShopeeExte
           <input type="checkbox" checked={hideDuplicates} onChange={(event) => setHideDuplicates(event.target.checked)} />
           Ignorar produtos ja importados
         </label>
+        <button type="button" onClick={() => applyFilters()} disabled={feedRows.length === 0} className="rounded-xl bg-orange-500 px-4 py-3 text-xs font-black uppercase text-white hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40 lg:col-span-2">
+          Aplicar filtros
+        </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-orange-100 bg-orange-50 px-4 py-3 text-sm font-bold text-orange-900">
-        <span>{fileName || "Nenhum arquivo selecionado."}</span>
-        <span>{status}</span>
+      <div className="space-y-2 rounded-xl border border-orange-100 bg-orange-50 px-4 py-3 text-sm font-bold text-orange-900">
+        <div className="flex flex-wrap items-center gap-2">
+          <span>{fileName || "Nenhum arquivo selecionado."}</span>
+          <span>{status}</span>
+        </div>
+        <p className="text-xs font-semibold text-orange-800">
+          Este feed nao trouxe coluna de comissao. A curadoria usa preco, desconto, avaliacao, imagem e link afiliado/curto quando disponivel.
+        </p>
       </div>
 
       <form action={importSelectedShopeeFeedProducts} className="space-y-4">
