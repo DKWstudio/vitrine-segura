@@ -1,0 +1,374 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { importSelectedShopeeFeedProducts } from "@/app/admin/actions";
+
+type FeedRow = Record<string, string>;
+
+type FeedCandidate = {
+  itemid: string;
+  title: string;
+  category: string;
+  description: string;
+  price: string;
+  sale_price: string;
+  discount_percentage: string;
+  image_link: string;
+  item_rating: string;
+  product_link: string;
+  affiliate_link: string;
+  raw_category1: string;
+  raw_category2: string;
+  score: number;
+  isDuplicate: boolean;
+};
+
+type ShopeeFeedImporterProps = {
+  categoryOptions: string[];
+  existingShopeeExternalIds: string[];
+};
+
+const defaultCategories = [
+  "Casa e Decoração",
+  "Vestuário e Acessórios",
+  "Jóias & Relógios",
+  "Beleza",
+  "Esportes e Fitness",
+  "Celulares e Telefones",
+  "Eletrônicos, Áudio e Vídeo",
+  "Eletrodomésticos",
+  "Ferramentas",
+];
+
+function parseNumber(value: string) {
+  if (!value.trim()) return null;
+  const parsed = Number(value.replace(/R\$/gi, "").replace(/\s/g, "").replace(/\./g, "").replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatCurrency(value: string) {
+  const parsed = parseNumber(value);
+  return parsed === null ? "-" : parsed.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function parseCsv(text: string) {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let insideQuotes = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const nextChar = text[index + 1];
+
+    if (char === '"' && insideQuotes && nextChar === '"') {
+      cell += '"';
+      index += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      insideQuotes = !insideQuotes;
+      continue;
+    }
+
+    if (char === "," && !insideQuotes) {
+      row.push(cell.trim());
+      cell = "";
+      continue;
+    }
+
+    if ((char === "\n" || char === "\r") && !insideQuotes) {
+      if (char === "\r" && nextChar === "\n") {
+        index += 1;
+      }
+
+      row.push(cell.trim());
+      cell = "";
+
+      if (row.some((value) => value !== "")) {
+        rows.push(row);
+      }
+
+      row = [];
+      continue;
+    }
+
+    cell += char;
+  }
+
+  row.push(cell.trim());
+
+  if (row.some((value) => value !== "")) {
+    rows.push(row);
+  }
+
+  if (rows.length < 2) return [];
+
+  const headers = rows[0].map((header) => header.trim());
+
+  return rows.slice(1).map((cells) => {
+    const object: FeedRow = {};
+
+    headers.forEach((header, index) => {
+      object[header] = cells[index] || "";
+    });
+
+    return object;
+  });
+}
+
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function mapShopeeCategory(category1: string, category2: string) {
+  const source = normalizeText(`${category1} ${category2}`);
+
+  if (/home|living|kitchen|party|garden|furniture|decor/.test(source)) return "Casa e Decoração";
+  if (/beauty|health|personal care|makeup|skincare/.test(source)) return "Beleza";
+  if (/fashion|clothes|bags|shoes|apparel|women|men|baby|kids/.test(source)) return "Vestuário e Acessórios";
+  if (/jewel|watch|accessor/.test(source)) return "Jóias & Relógios";
+  if (/sports|outdoor|fitness/.test(source)) return "Esportes e Fitness";
+  if (/mobile|phone|tablet/.test(source)) return "Celulares e Telefones";
+  if (/computer|camera|audio|video|gaming|electronic/.test(source)) return "Eletrônicos, Áudio e Vídeo";
+  if (/appliance/.test(source)) return "Eletrodomésticos";
+  if (/tool|improvement|hardware/.test(source)) return "Ferramentas";
+
+  return "Casa e Decoração";
+}
+
+function rowToCandidate(row: FeedRow, existingIds: Set<string>, forcedCategory: string) {
+  const itemid = row.itemid || row.item_id || row["item id"] || "";
+  const title = row.title || "";
+  const productLink = row.product_link || "";
+  const affiliateLink = row["product_short link"] || row.product_short_link || row.offer_link || productLink;
+  const salePrice = row.sale_price || row.price || "";
+  const price = row.price || salePrice;
+  const rating = row.item_rating || "";
+  const discount = row.discount_percentage || "";
+  const category = forcedCategory || mapShopeeCategory(row.global_category1 || "", row.global_category2 || "");
+  const ratingValue = parseNumber(rating) || 0;
+  const discountValue = parseNumber(discount) || 0;
+  const salePriceValue = parseNumber(salePrice) || parseNumber(price) || 0;
+
+  if (!itemid || !title || !productLink || !salePriceValue) {
+    return null;
+  }
+
+  const score = ratingValue * 20 + discountValue + (salePriceValue <= 50 ? 20 : salePriceValue <= 100 ? 10 : 0);
+
+  return {
+    itemid,
+    title,
+    category,
+    description: row.description || "",
+    price,
+    sale_price: salePrice,
+    discount_percentage: discount,
+    image_link: row.image_link || "",
+    item_rating: rating,
+    product_link: productLink,
+    affiliate_link: affiliateLink,
+    raw_category1: row.global_category1 || "",
+    raw_category2: row.global_category2 || "",
+    score,
+    isDuplicate: existingIds.has(`shopee-${itemid}`),
+  } satisfies FeedCandidate;
+}
+
+export default function ShopeeFeedImporter({ categoryOptions, existingShopeeExternalIds }: ShopeeFeedImporterProps) {
+  const [fileName, setFileName] = useState("");
+  const [status, setStatus] = useState("");
+  const [candidates, setCandidates] = useState<FeedCandidate[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [minRating, setMinRating] = useState("4.7");
+  const [maxPrice, setMaxPrice] = useState("100");
+  const [minDiscount, setMinDiscount] = useState("10");
+  const [maxResults, setMaxResults] = useState("100");
+  const [query, setQuery] = useState("");
+  const [forcedCategory, setForcedCategory] = useState("");
+  const [hideDuplicates, setHideDuplicates] = useState(true);
+
+  const existingIds = useMemo(() => new Set(existingShopeeExternalIds), [existingShopeeExternalIds]);
+  const categories = useMemo(() => Array.from(new Set([...defaultCategories, ...categoryOptions])).sort((a, b) => a.localeCompare(b, "pt-BR")), [categoryOptions]);
+  const selectedCandidates = useMemo(() => {
+    const selectedSet = new Set(selectedIds);
+    return candidates.filter((candidate) => selectedSet.has(candidate.itemid));
+  }, [candidates, selectedIds]);
+
+  async function analyzeFile(file: File | null) {
+    if (!file) return;
+
+    setFileName(file.name);
+    setStatus("Lendo arquivo...");
+    setCandidates([]);
+    setSelectedIds([]);
+
+    const text = await file.text();
+    setStatus("Analisando CSV...");
+
+    const minRatingValue = parseNumber(minRating) ?? 0;
+    const maxPriceValue = parseNumber(maxPrice) ?? Number.POSITIVE_INFINITY;
+    const minDiscountValue = parseNumber(minDiscount) ?? 0;
+    const maxResultsValue = Math.min(parseNumber(maxResults) ?? 100, 500);
+    const normalizedQuery = normalizeText(query);
+    const rows = parseCsv(text);
+    const parsedCandidates: FeedCandidate[] = [];
+
+    for (const row of rows) {
+      const candidate = rowToCandidate(row, existingIds, forcedCategory);
+
+      if (!candidate) continue;
+      if (hideDuplicates && candidate.isDuplicate) continue;
+
+      const salePrice = parseNumber(candidate.sale_price) ?? parseNumber(candidate.price) ?? 0;
+      const rating = parseNumber(candidate.item_rating) ?? 0;
+      const discount = parseNumber(candidate.discount_percentage) ?? 0;
+      const searchable = normalizeText(`${candidate.title} ${candidate.description} ${candidate.raw_category1} ${candidate.raw_category2}`);
+
+      if (salePrice > maxPriceValue) continue;
+      if (rating < minRatingValue) continue;
+      if (discount < minDiscountValue) continue;
+      if (normalizedQuery && !searchable.includes(normalizedQuery)) continue;
+
+      parsedCandidates.push(candidate);
+    }
+
+    const nextCandidates = parsedCandidates
+      .sort((a, b) => b.score - a.score)
+      .slice(0, maxResultsValue);
+
+    setCandidates(nextCandidates);
+    setSelectedIds(nextCandidates.slice(0, Math.min(50, nextCandidates.length)).map((candidate) => candidate.itemid));
+    setStatus(`${rows.length.toLocaleString("pt-BR")} linhas analisadas. ${nextCandidates.length} candidato(s) exibido(s).`);
+  }
+
+  function toggleCandidate(itemid: string) {
+    setSelectedIds((currentIds) => currentIds.includes(itemid) ? currentIds.filter((id) => id !== itemid) : [...currentIds, itemid]);
+  }
+
+  function selectAll() {
+    setSelectedIds(candidates.map((candidate) => candidate.itemid));
+  }
+
+  function clearSelection() {
+    setSelectedIds([]);
+  }
+
+  return (
+    <section className="space-y-5 rounded-2xl border border-orange-100 bg-white p-4 shadow-sm md:p-5">
+      <div>
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-orange-600">Shopee</p>
+        <h2 className="text-2xl font-black uppercase text-slate-950">Importar feed de produtos</h2>
+        <p className="text-sm text-slate-500">Analise o CSV gigante no navegador, filtre bons candidatos e envie ao Supabase apenas os selecionados.</p>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-6">
+        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 lg:col-span-2">
+          Arquivo CSV
+          <input type="file" accept=".csv,text/csv" onChange={(event) => void analyzeFile(event.target.files?.[0] || null)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold normal-case tracking-normal text-slate-950" />
+        </label>
+        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+          Aval. minima
+          <input value={minRating} onChange={(event) => setMinRating(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold normal-case tracking-normal" />
+        </label>
+        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+          Preco max.
+          <input value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold normal-case tracking-normal" />
+        </label>
+        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+          Desconto min.
+          <input value={minDiscount} onChange={(event) => setMinDiscount(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold normal-case tracking-normal" />
+        </label>
+        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+          Max. exibidos
+          <input value={maxResults} onChange={(event) => setMaxResults(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold normal-case tracking-normal" />
+        </label>
+        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 lg:col-span-2">
+          Buscar termo
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ex.: martelo, cozinha, organizador" className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold normal-case tracking-normal" />
+        </label>
+        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 lg:col-span-2">
+          Categoria forcada opcional
+          <select value={forcedCategory} onChange={(event) => setForcedCategory(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold normal-case tracking-normal text-slate-950">
+            <option value="">Mapear automaticamente</option>
+            {categories.map((category) => <option key={category} value={category}>{category}</option>)}
+          </select>
+        </label>
+        <label className="flex items-end gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 lg:col-span-2">
+          <input type="checkbox" checked={hideDuplicates} onChange={(event) => setHideDuplicates(event.target.checked)} />
+          Ignorar produtos ja importados
+        </label>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-orange-100 bg-orange-50 px-4 py-3 text-sm font-bold text-orange-900">
+        <span>{fileName || "Nenhum arquivo selecionado."}</span>
+        <span>{status}</span>
+      </div>
+
+      <form action={importSelectedShopeeFeedProducts} className="space-y-4">
+        <input type="hidden" name="selected_products" value={JSON.stringify(selectedCandidates)} />
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm font-bold text-slate-600">
+            {selectedCandidates.length} selecionado(s) de {candidates.length} candidato(s)
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={selectAll} className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-black uppercase text-blue-700">Selecionar todos</button>
+            <button type="button" onClick={clearSelection} className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black uppercase text-slate-700">Limpar</button>
+            <label className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-2 text-xs font-black uppercase text-green-700">
+              <input type="checkbox" name="publish_direct" />
+              Publicar direto
+            </label>
+            <button disabled={selectedCandidates.length === 0} className="rounded-xl bg-slate-950 px-5 py-3 text-xs font-black uppercase text-white disabled:cursor-not-allowed disabled:opacity-40">
+              Importar selecionados
+            </button>
+          </div>
+        </div>
+
+        {candidates.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">Escolha um CSV para analisar os candidatos do feed.</p>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {candidates.map((candidate) => {
+              const selected = selectedIds.includes(candidate.itemid);
+
+              return (
+                <article key={candidate.itemid} className={`rounded-2xl border p-3 shadow-sm ${selected ? "border-orange-300 bg-orange-50" : "border-slate-200 bg-white"}`}>
+                  <div className="flex gap-3">
+                    <div className="flex h-20 w-20 flex-none items-center justify-center overflow-hidden rounded-xl border border-slate-100 bg-white">
+                      {candidate.image_link ? <img src={candidate.image_link} alt="" className="h-full w-full object-contain" /> : <span className="text-[10px] font-black uppercase text-slate-400">Sem img</span>}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap gap-1 text-[10px] font-black uppercase">
+                        <span className="rounded-full bg-orange-100 px-2 py-1 text-orange-700">Shopee</span>
+                        <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-600">{candidate.category}</span>
+                        {candidate.isDuplicate ? <span className="rounded-full bg-red-50 px-2 py-1 text-red-700">Duplicado</span> : null}
+                      </div>
+                      <h3 className="mt-2 line-clamp-3 text-sm font-black leading-snug text-slate-950">{candidate.title}</h3>
+                      <p className="mt-1 text-xs font-bold text-slate-500">{candidate.raw_category1} / {candidate.raw_category2}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-black">
+                    <span className="rounded-full bg-white px-2 py-1 text-slate-950">{formatCurrency(candidate.sale_price || candidate.price)}</span>
+                    <span className="rounded-full bg-green-50 px-2 py-1 text-green-700">Nota {candidate.item_rating || "-"}</span>
+                    <span className="rounded-full bg-blue-50 px-2 py-1 text-blue-700">-{candidate.discount_percentage || "0"}%</span>
+                  </div>
+                  <label className="mt-3 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black uppercase text-slate-700">
+                    <input type="checkbox" checked={selected} onChange={() => toggleCandidate(candidate.itemid)} />
+                    Importar este produto
+                  </label>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </form>
+    </section>
+  );
+}

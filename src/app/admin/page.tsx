@@ -1332,6 +1332,12 @@ export default async function AdminPage({
             >
               Gerador de posts
             </Link>
+            <Link
+              href="/admin/feed-shopee"
+              className="rounded-xl border border-orange-300/40 bg-orange-500 px-4 py-2 text-xs font-black uppercase text-white hover:bg-orange-400"
+            >
+              Feed Shopee
+            </Link>
             <a
               href="/api/auth/mercadolivre/start"
               className="rounded-xl bg-[#FFE600] px-4 py-2 text-xs font-black uppercase text-slate-950"

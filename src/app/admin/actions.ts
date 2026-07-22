@@ -728,6 +728,142 @@ export async function importBulkProducts(formData: FormData) {
   const warning = warningParts.length > 0 ? ` ${warningParts.join(". ")}` : "";
   redirectWithAdminMessage("notice_success", `${productsToSave.length} produto(s) importado(s) com sucesso.${warning}`);
 }
+
+type ShopeeFeedProductInput = {
+  itemid?: unknown;
+  title?: unknown;
+  category?: unknown;
+  description?: unknown;
+  price?: unknown;
+  sale_price?: unknown;
+  discount_percentage?: unknown;
+  image_link?: unknown;
+  item_rating?: unknown;
+  product_link?: unknown;
+  affiliate_link?: unknown;
+};
+
+function stringFromUnknown(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function numberFromUnknown(value: unknown) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value !== "string" || value.trim() === "") {
+    return null;
+  }
+
+  return parseBulkNumber(value);
+}
+
+function getShopeeFeedRow(input: ShopeeFeedProductInput, publishDirect: boolean) {
+  const itemId = stringFromUnknown(input.itemid);
+  const title = stringFromUnknown(input.title);
+  const category = stringFromUnknown(input.category) || "Shopee";
+  const productUrl = stringFromUnknown(input.product_link);
+  const affiliateUrl = stringFromUnknown(input.affiliate_link) || productUrl;
+  const regularPrice = numberFromUnknown(input.price);
+  const salePrice = numberFromUnknown(input.sale_price);
+  const price = salePrice ?? regularPrice;
+  const rating = numberFromUnknown(input.item_rating);
+  const discount = numberFromUnknown(input.discount_percentage);
+
+  if (!itemId || !title || !productUrl || price === null || price < 0) {
+    return null;
+  }
+
+  const oldPrice = regularPrice !== null && regularPrice > price ? regularPrice : null;
+  const now = new Date().toISOString();
+
+  return {
+    source: "shopee" as ProductSource,
+    external_id: `shopee-${itemId}`,
+    title: title.slice(0, 300),
+    description: stringFromUnknown(input.description).slice(0, 1000) || null,
+    category,
+    price,
+    old_price: oldPrice,
+    currency: "BRL",
+    image_url: stringFromUnknown(input.image_link) || null,
+    product_url: productUrl,
+    affiliate_url: affiliateUrl || null,
+    rating,
+    reviews_count: null,
+    sold_count: null,
+    seller_name: "Shopee Feed",
+    seller_reputation: discount !== null ? `${discount}% desconto` : null,
+    is_active: publishDirect,
+    is_featured: false,
+    score: calculateProductScore({
+      price,
+      rating,
+      sold_count: null,
+      seller_reputation: null,
+    }) + (discount || 0) / 10,
+    last_checked_at: now,
+  };
+}
+
+export async function importSelectedShopeeFeedProducts(formData: FormData) {
+  await requireAdmin();
+
+  const rawProducts = requiredString(formData, "selected_products");
+  const publishDirect = formData.get("publish_direct") === "on";
+  let parsedProducts: ShopeeFeedProductInput[];
+
+  try {
+    const parsed = JSON.parse(rawProducts);
+    parsedProducts = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    redirectWithAdminMessage("notice_error", "Nao consegui ler os produtos selecionados do feed.", "/admin/feed-shopee");
+  }
+
+  if (parsedProducts.length === 0) {
+    redirectWithAdminMessage("notice_error", "Selecione ao menos um produto do feed Shopee.", "/admin/feed-shopee");
+  }
+
+  if (parsedProducts.length > 200) {
+    redirectWithAdminMessage("notice_error", "Importe no maximo 200 produtos selecionados por vez.", "/admin/feed-shopee");
+  }
+
+  const rows = parsedProducts
+    .map((product) => getShopeeFeedRow(product, publishDirect))
+    .filter((product): product is NonNullable<ReturnType<typeof getShopeeFeedRow>> => product !== null);
+
+  if (rows.length === 0) {
+    redirectWithAdminMessage("notice_error", "Nenhum produto valido foi encontrado entre os selecionados.", "/admin/feed-shopee");
+  }
+
+  const uniqueRowsByExternalId = new Map<string, (typeof rows)[number]>();
+
+  for (const row of rows) {
+    uniqueRowsByExternalId.set(row.external_id, row);
+  }
+
+  const rowsToSave = Array.from(uniqueRowsByExternalId.values());
+  const supabase = createServiceSupabaseClient();
+  const { error } = await supabase.from("products").upsert(rowsToSave, {
+    onConflict: "source,external_id",
+    ignoreDuplicates: false,
+  });
+
+  if (error) {
+    redirectWithAdminMessage("notice_error", `Nao consegui importar feed Shopee: ${error.message}`, "/admin/feed-shopee");
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/feed-shopee");
+  revalidatePath("/");
+
+  redirectWithAdminMessage(
+    "notice_success",
+    `${rowsToSave.length} produto(s) do feed Shopee importado(s) ${publishDirect ? "como publicados" : "como aguardando publicacao"}.`,
+    "/admin/feed-shopee",
+  );
+}
 export async function createManualProduct(formData: FormData) {
   await requireAdmin();
 
